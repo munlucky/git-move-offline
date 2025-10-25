@@ -1,28 +1,47 @@
 #!/usr/bin/env node
 
 const path = require('path');
+const { getMessage, setLanguage } = require('../lib/i18n');
+const { loadConfig, saveConfig } = require('../lib/config');
+const inquirer = require('inquirer');
+
+async function promptLanguage() {
+  const answers = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'language',
+      message: getMessage('selectLanguage'),
+      choices: [
+        { name: '한국어', value: 'ko' },
+        { name: 'English', value: 'en' },
+      ],
+    },
+  ]);
+  return answers.language;
+}
 
 function showHelp() {
   console.log(`
-Git Move Offline (gitmv) - Git 저장소 오프라인 이동 도구
+${getMessage('toolDescription')}
 
-사용법:
-  gitmv export                Export current repository to ZIP
-  gitmv import <file.zip>     Import repository from ZIP
+${getMessage('usageTitle')}
+  gitmv export                ${getMessage('exportCommand')}
+  gitmv import <file.zip>     ${getMessage('importCommand')}
 
-옵션:
-  -h, --help               Show this help message
-  -v, --version            Show version
+${getMessage('optionsTitle')}
+  -h, --help               ${getMessage('helpOption')}
+  -v, --version            ${getMessage('versionOption')}
+  --lang <lang>            ${getMessage('langOption')}
 
-예시:
+${getMessage('examplesTitle')}
   gitmv export
   gitmv import git-export-20251025.zip
   gitmv import git-export-20251025.zip --init
   gitmv import git-export-20251025.zip --branch main,develop
 
-더 많은 정보:
-  export 옵션:  gitmv export --help
-  import 옵션:  gitmv import --help
+${getMessage('moreInfoTitle')}
+  ${getMessage('exportOptions')}
+  ${getMessage('importOptions')}
   `);
 }
 
@@ -42,15 +61,33 @@ async function runImport() {
 }
 
 async function main() {
+  let config = loadConfig();
+  let lang = config.language;
+
+  const langIndex = process.argv.indexOf('--lang');
+  if (langIndex > -1 && process.argv[langIndex + 1]) {
+    lang = process.argv[langIndex + 1];
+    setLanguage(lang);
+    process.argv.splice(langIndex, 2);
+  } else if (lang) {
+    setLanguage(lang);
+  }
+
+  if (!lang) {
+    lang = await promptLanguage();
+    setLanguage(lang);
+    config.language = lang;
+    saveConfig(config);
+    console.log(getMessage('languageSet'));
+  }
+
   const args = process.argv.slice(2);
 
-  // 인자가 없거나 help
   if (args.length === 0 || args[0] === '-h' || args[0] === '--help') {
     showHelp();
     process.exit(0);
   }
 
-  // 버전
   if (args[0] === '-v' || args[0] === '--version') {
     showVersion();
     process.exit(0);
@@ -59,28 +96,23 @@ async function main() {
   const command = args[0];
 
   try {
-    // export 명령어
     if (command === 'export') {
-      // process.argv에서 'export' 제거 (export.js가 올바르게 인자를 파싱하도록)
       process.argv.splice(2, 1);
       await runExport();
       return;
     }
 
-    // import 명령어
     if (command === 'import') {
-      // process.argv에서 'import' 제거 (import.js가 올바르게 인자를 파싱하도록)
       process.argv.splice(2, 1);
       await runImport();
       return;
     }
 
-    // 알 수 없는 명령어
-    console.error(`Unknown command: ${command}\n`);
+    console.error(getMessage('unknownCommand', command));
     showHelp();
     process.exit(1);
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error(getMessage('error'), error.message);
     process.exit(1);
   }
 }

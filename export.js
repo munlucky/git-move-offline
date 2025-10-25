@@ -5,34 +5,35 @@ const path = require('path');
 const GitUtils = require('./lib/git-utils');
 const ZipUtils = require('./lib/zip-utils');
 const Interactive = require('./lib/interactive');
+const { getMessage } = require('./lib/i18n');
 
 async function exportRepository() {
-  console.log('=== Git Export Tool ===\n');
+  console.log(getMessage('exportTitle'));
 
   const repoPath = process.cwd();
   const git = new GitUtils(repoPath);
 
-  // 1. Git 저장소 확인
-  Interactive.showProgress('Checking Git repository');
+  // 1. Check Git repository
+  Interactive.showProgress(getMessage('checkGitRepo'));
   if (!git.isGitRepo()) {
     Interactive.completeProgress(false);
-    Interactive.error('Not a Git repository. Please run this in a Git project directory.');
+    Interactive.error(getMessage('notGitRepo'));
     process.exit(1);
   }
   Interactive.completeProgress(true);
 
-  // 2. 변경사항 확인
+  // 2. Check for uncommitted changes
   if (git.hasUncommittedChanges()) {
-    Interactive.warning('You have uncommitted changes. These will not be included in the export.');
-    const shouldContinue = await Interactive.confirm('Continue anyway?');
+    Interactive.warning(getMessage('uncommittedChanges'));
+    const shouldContinue = await Interactive.confirm(getMessage('continueAnyway'));
     if (!shouldContinue) {
-      console.log('Export cancelled.');
+      console.log(getMessage('exportCancelled'));
       process.exit(0);
     }
   }
 
-  // 3. 메타데이터 수집
-  Interactive.showProgress('Collecting repository metadata');
+  // 3. Collect metadata
+  Interactive.showProgress(getMessage('collectingMeta'));
   const currentBranch = git.getCurrentBranch();
   const branches = git.getLocalBranches();
   const tags = git.getAllTags();
@@ -50,14 +51,14 @@ async function exportRepository() {
   };
   Interactive.completeProgress(true);
 
-  // 4. 메타데이터 표시
-  console.log('\nRepository Information:');
-  console.log(`  Current Branch: ${currentBranch}`);
-  console.log(`  Total Branches: ${branches.length}`);
-  console.log(`  Total Tags: ${tags.length}`);
+  // 4. Display metadata
+  console.log(getMessage('repoInfo'));
+  console.log(getMessage('currentBranch', currentBranch));
+  console.log(getMessage('totalBranches', branches.length));
+  console.log(getMessage('totalTags', tags.length));
 
   if (branches.length > 0) {
-    console.log('\nBranches:');
+    console.log(getMessage('branches'));
     branches.forEach(branch => {
       const info = branchMetadata[branch];
       const marker = branch === currentBranch ? '* ' : '  ';
@@ -65,44 +66,44 @@ async function exportRepository() {
     });
   }
 
-  const shouldProceed = await Interactive.confirm('\nProceed with export?', true);
+  const shouldProceed = await Interactive.confirm(getMessage('proceedWithExport'), true);
   if (!shouldProceed) {
-    console.log('Export cancelled.');
+    console.log(getMessage('exportCancelled'));
     process.exit(0);
   }
 
-  // 5. 임시 디렉토리 생성
+  // 5. Create temporary directory
   const tempDir = path.join(repoPath, '.git-export-temp');
   ZipUtils.ensureDir(tempDir);
 
   try {
-    // 6. Bundle 생성
-    Interactive.showProgress('Creating Git bundle (this may take a while)');
+    // 6. Create bundle
+    Interactive.showProgress(getMessage('creatingBundle'));
     const bundlePath = path.join(tempDir, 'repository.bundle');
     git.createBundle(bundlePath, '--all');
     Interactive.completeProgress(true);
 
-    // Bundle 검증
-    Interactive.showProgress('Verifying bundle integrity');
+    // Verify bundle
+    Interactive.showProgress(getMessage('verifyingBundle'));
     const isValid = git.verifyBundle(bundlePath);
     if (!isValid) {
-      throw new Error('Bundle verification failed');
+      throw new Error(getMessage('bundleFailed'));
     }
     Interactive.completeProgress(true);
 
     const bundleSize = ZipUtils.getFileSize(bundlePath);
-    console.log(`  Bundle size: ${ZipUtils.formatBytes(bundleSize)}`);
+    console.log(getMessage('bundleSize', ZipUtils.formatBytes(bundleSize)));
 
-    // 7. 메타데이터 파일 생성
+    // 7. Create metadata file
     const metadataPath = path.join(tempDir, 'metadata.json');
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
 
-    // 8. ZIP 압축
+    // 8. Create ZIP archive
     const timestamp = ZipUtils.getTimestamp();
     const zipFileName = `git-export-${timestamp}.zip`;
     const zipPath = path.join(repoPath, zipFileName);
 
-    Interactive.showProgress('Creating ZIP archive');
+    Interactive.showProgress(getMessage('creatingZip'));
     await ZipUtils.createZip([
       { path: bundlePath, name: 'repository.bundle' },
       { path: metadataPath, name: 'metadata.json' }
@@ -110,26 +111,26 @@ async function exportRepository() {
     Interactive.completeProgress(true);
 
     const zipSize = ZipUtils.getFileSize(zipPath);
-    console.log(`  ZIP size: ${ZipUtils.formatBytes(zipSize)}`);
+    console.log(getMessage('zipSize', ZipUtils.formatBytes(zipSize)));
 
-    // 9. 정리
-    Interactive.showProgress('Cleaning up temporary files');
+    // 9. Cleanup
+    Interactive.showProgress(getMessage('cleaningUp'));
     ZipUtils.deletePath(tempDir);
     Interactive.completeProgress(true);
 
-    // 10. 완료
-    Interactive.printBox('Export Complete!', [
-      `File: ${zipFileName}`,
-      `Size: ${ZipUtils.formatBytes(zipSize)}`,
-      `Location: ${zipPath}`,
+    // 10. Complete
+    Interactive.printBox(getMessage('exportComplete'), [
+      getMessage('file', zipFileName),
+      getMessage('size', ZipUtils.formatBytes(zipSize)),
+      getMessage('location', zipPath),
       '',
-      'Next steps:',
-      '1. Copy this ZIP file to your offline environment',
-      '2. Run: gitmv import <zip-file-path>'
+      getMessage('nextSteps'),
+      getMessage('copyZip'),
+      getMessage('runImport')
     ], 70);
 
   } catch (error) {
-    // 에러 발생 시 정리
+    // Cleanup on error
     Interactive.error(error.message);
     if (fs.existsSync(tempDir)) {
       ZipUtils.deletePath(tempDir);
@@ -138,7 +139,7 @@ async function exportRepository() {
   }
 }
 
-// 실행
+// Execute
 if (require.main === module) {
   exportRepository().catch(error => {
     Interactive.error(error.message);
