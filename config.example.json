@@ -1,0 +1,10 @@
+{
+  "autoMergeBranches": ["main", "develop"],
+  "skipBranches": ["experimental", "temp"],
+  "autoPush": false,
+  "conflictStrategy": "manual",
+  "mergeOptions": {
+    "noFastForward": true,
+    "commitMessage": "Merge external changes"
+  }
+}
