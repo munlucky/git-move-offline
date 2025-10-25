@@ -8,4 +8,4 @@ config.json
 .git-export-temp/
 .git-import-temp/
 .history
-*.md
+.claude

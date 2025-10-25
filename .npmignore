@@ -1,0 +1,48 @@
+# Git
+.git/
+.github/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+.history/
+.claude/
+
+# Test
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Build artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+temp/
+tmp/
+.git-export-temp/
+.git-import-temp/
+*.tmp
+
+# Project specific
+*.zip
+*.bundle
+*.tgz
+config.json
+
+# Documentation that shouldn't be in package
+PUBLISH.md
+INSTALL.md
