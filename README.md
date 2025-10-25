@@ -17,19 +17,57 @@
 
 ## 설치
 
+### npm 전역 설치 (추천)
+
+**공개 npm registry 사용 (인터넷 연결 필요):**
 ```bash
+npm install -g git-move-offline
+```
+
+**오프라인 설치 (사내망 환경):**
+```bash
+# 1. 외부 PC에서 패키지 생성
+npm pack
+# → git-move-offline-1.0.0.tgz 생성
+
+# 2. .tgz 파일을 USB로 사내망 PC에 복사
+
+# 3. 사내망 PC에서 설치
+npm install -g ./git-move-offline-1.0.0.tgz
+```
+
+**자동 설치 스크립트 사용:**
+```bash
+# Linux/Mac
+./scripts/install-local.sh
+
+# Windows
+scripts\install-local.bat
+```
+
+자세한 설치 방법은 [INSTALL.md](./INSTALL.md)를 참고하세요.
+
+### 개발 모드 설치
+
+이 저장소를 직접 사용하려면:
+```bash
+git clone <repository-url>
+cd git-move-offline
 npm install
 ```
 
 ## 사용 방법
 
+> **참고**: 전역 설치 후 `gmo` 명령어를 사용하거나, 개발 모드에서는 `node export.js` / `node import.js`를 직접 실행할 수 있습니다.
+
 ### 1. Export (외부 PC에서)
 
-프로젝트 루트 디렉토리에서 실행:
-
 ```bash
+# 전역 설치 후
+gmo export
+
+# 또는 개발 모드
 npm run export
-# 또는
 node export.js
 ```
 
@@ -54,6 +92,9 @@ git init
 git remote add origin https://internal-git.company.com/project.git
 
 # Import 실행 (자동으로 초기 모드 감지)
+gmo import git-export-20251025.zip
+
+# 또는 개발 모드
 node import.js git-export-20251025.zip
 ```
 
@@ -64,6 +105,11 @@ node import.js git-export-20251025.zip
 ```bash
 # 기존 프로젝트 디렉토리에서
 cd /path/to/existing-project
+
+# 전역 설치 후
+gmo import git-export-20251025.zip
+
+# 또는 개발 모드
 node import.js git-export-20251025.zip
 ```
 
@@ -81,16 +127,20 @@ node import.js git-export-20251025.zip
 
 ```bash
 # 초기 모드 강제 사용 (자동 감지 무시)
-node import.js git-export-20251025.zip --init
+gmo import git-export-20251025.zip --init
 
 # 자동 모드 (설정 파일 기반)
-node import.js git-export-20251025.zip --auto
+gmo import git-export-20251025.zip --auto
 
 # Dry-run (실제 변경 없이 시뮬레이션)
-node import.js git-export-20251025.zip --dry-run
+gmo import git-export-20251025.zip --dry-run
 
 # 특정 브랜치만 처리
-node import.js git-export-20251025.zip --branch main,develop
+gmo import git-export-20251025.zip --branch main,develop
+
+# 도움말
+gmo --help
+gmo import --help
 ```
 
 ## 설정 파일 (선택사항)
@@ -149,14 +199,14 @@ node import.js git-export-20251025.zip --branch main,develop
 ```bash
 # 외부 PC (인터넷망)
 cd /path/to/project
-node export.js
+gmo export
 # → git-export-20251025-143020.zip 생성
 
 # USB로 파일 이동
 
 # 사내망 PC
 cd /path/to/internal-project
-node import.js /path/to/git-export-20251025-143020.zip
+gmo import /path/to/git-export-20251025-143020.zip
 # → 인터랙티브 프롬프트에서 브랜치 선택
 # → merge 완료 후 push
 ```

@@ -3,19 +3,45 @@
   "version": "1.0.0",
   "description": "Git 저장소를 히스토리와 함께 오프라인 환경으로 이동 및 동기화하는 도구",
   "main": "index.js",
+  "bin": {
+    "gmo": "./bin/gmo.js"
+  },
   "scripts": {
     "export": "node export.js",
-    "import": "node import.js"
+    "import": "node import.js",
+    "pack": "npm pack",
+    "test-install": "npm pack && npm install -g git-move-offline-*.tgz"
   },
+  "files": [
+    "bin/",
+    "lib/",
+    "export.js",
+    "import.js",
+    "README.md",
+    "USAGE.md",
+    "config.example.json"
+  ],
   "keywords": [
     "git",
     "offline",
     "bundle",
     "migration",
-    "sync"
+    "sync",
+    "cli"
   ],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/git-move-offline.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/git-move-offline/issues"
+  },
+  "homepage": "https://github.com/yourusername/git-move-offline#readme",
   "dependencies": {
     "archiver": "^7.0.1",
     "extract-zip": "^2.0.1"

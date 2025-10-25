@@ -1,6 +1,9 @@
 node_modules/
 *.zip
 *.bundle
+*.tgz
 temp/
 .DS_Store
 config.json
+.git-export-temp/
+.git-import-temp/
