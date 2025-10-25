@@ -7,16 +7,27 @@
 외부에서 개발한 프로젝트를 처음으로 사내망으로 가져오는 경우:
 
 ```bash
-# 외부 PC
+# 외부 PC (인터넷망)
 cd /path/to/project
 npm install
 node export.js
+# → git-export-20251025-143020.zip 생성
 
 # 사내망 PC (빈 저장소 준비)
 git init
 git remote add origin https://internal-git.company.com/project.git
-node import.js git-export-20251025.zip --auto
+
+# Import 실행 - 자동으로 초기 모드 감지됨
+node import.js git-export-20251025.zip
+# → "빈 저장소가 감지되었습니다" 메시지 표시
+# → "최초 import 모드를 사용하시겠습니까?" 확인
+# → 브랜치들이 직접 체크아웃됨 (merge 없이)
 ```
+
+**초기 모드의 장점:**
+- Merge 과정 없이 빠르게 브랜치 생성
+- 복잡한 충돌 처리 불필요
+- 깨끗한 히스토리 유지
 
 ### 2. 정기적 동기화
 
@@ -24,13 +35,22 @@ node import.js git-export-20251025.zip --auto
 
 ```bash
 # 외부 PC (최신 커밋 반영 후)
+cd /path/to/project
 node export.js
+# → git-export-20251025-143020.zip 생성
 
 # 사내망 PC (기존 프로젝트 디렉토리)
 cd /path/to/existing-project
 node import.js git-export-20251025.zip
+# → 자동으로 동기화 모드로 실행
 # → 인터랙티브 모드에서 merge할 브랜치 선택
+# → 각 브랜치별로 외부 변경사항 병합
 ```
+
+**동기화 모드의 특징:**
+- 기존 사내 커밋과 외부 커밋을 merge
+- 양쪽 히스토리 모두 보존
+- 충돌 발생 시 안내 및 해결 옵션 제공
 
 ### 3. 특정 브랜치만 동기화
 
@@ -83,6 +103,17 @@ node import.js git-export-20251025.zip
 node import.js git-export-20251025.zip --auto
 ```
 
+## 모드 비교
+
+| 항목 | 초기 모드 (--init) | 동기화 모드 (기본) |
+|------|-------------------|-------------------|
+| **사용 시기** | 빈 저장소 또는 최초 import | 기존 저장소에 정기 동기화 |
+| **자동 감지** | 커밋 0개일 때 자동 제안 | 커밋 있으면 자동 선택 |
+| **브랜치 처리** | Bundle에서 직접 checkout | 기존 브랜치와 merge |
+| **히스토리** | Bundle 히스토리만 | 양쪽 히스토리 보존 |
+| **충돌 가능성** | 없음 | 있음 (merge 시) |
+| **속도** | 빠름 | 상대적으로 느림 |
+
 ## 주의사항
 
 ### Export 시
@@ -91,7 +122,8 @@ node import.js git-export-20251025.zip --auto
 - Bundle 검증이 자동으로 수행됨
 
 ### Import 시
-- 기존 작업 디렉토리가 깨끗해야 함 (커밋되지 않은 변경사항 없음)
+- **초기 모드**: 빈 Git 저장소에서만 사용 권장
+- **동기화 모드**: 기존 작업 디렉토리가 깨끗해야 함 (커밋되지 않은 변경사항 없음)
 - 기존 히스토리와 병합되므로 양쪽 히스토리 모두 보존됨
 - Merge 전 항상 확인 프롬프트 제공 (auto 모드 제외)
 

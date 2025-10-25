@@ -46,14 +46,28 @@ node export.js
 
 ### 3. Import (사내망 PC에서)
 
-사내망의 기존 Git 프로젝트 디렉토리에서 실행:
+#### 최초 사용 (빈 저장소)
 
 ```bash
-node import.js <ZIP파일경로>
+# 새 저장소 생성
+git init
+git remote add origin https://internal-git.company.com/project.git
 
-# 예시
-node import.js git-export-20251025-143020.zip
+# Import 실행 (자동으로 초기 모드 감지)
+node import.js git-export-20251025.zip
 ```
+
+스크립트가 자동으로 빈 저장소를 감지하고 최적의 방식(초기 모드)을 제안합니다.
+
+#### 정기적 동기화 (기존 저장소)
+
+```bash
+# 기존 프로젝트 디렉토리에서
+cd /path/to/existing-project
+node import.js git-export-20251025.zip
+```
+
+자동으로 동기화 모드로 실행되어 외부 변경사항을 병합합니다.
 
 #### Import 동작 과정
 
@@ -66,14 +80,17 @@ node import.js git-export-20251025-143020.zip
 #### Import 옵션
 
 ```bash
+# 초기 모드 강제 사용 (자동 감지 무시)
+node import.js git-export-20251025.zip --init
+
 # 자동 모드 (설정 파일 기반)
-node import.js git-export-20251025-143020.zip --auto
+node import.js git-export-20251025.zip --auto
 
 # Dry-run (실제 변경 없이 시뮬레이션)
-node import.js git-export-20251025-143020.zip --dry-run
+node import.js git-export-20251025.zip --dry-run
 
-# 특정 브랜치만 merge
-node import.js git-export-20251025-143020.zip --branch main,develop
+# 특정 브랜치만 처리
+node import.js git-export-20251025.zip --branch main,develop
 ```
 
 ## 설정 파일 (선택사항)
@@ -97,10 +114,20 @@ node import.js git-export-20251025-143020.zip --branch main,develop
 3. 날짜/시간이 포함된 ZIP 파일로 압축
 
 ### Import 과정
+
+**초기 모드 (빈 저장소):**
 1. ZIP 압축 해제 및 메타데이터 검증
-2. Bundle을 `git remote add` 로 임시 remote 추가
-3. `git fetch <remote>` 로 외부 커밋 가져오기
-4. 각 브랜치별로 `git merge` 실행 (사용자 선택 또는 자동)
+2. Bundle을 임시 remote로 추가
+3. `git fetch` 로 모든 커밋 가져오기
+4. Bundle에서 직접 브랜치 체크아웃 (merge 불필요)
+5. Origin으로 push
+6. 임시 파일 정리
+
+**동기화 모드 (기존 저장소):**
+1. ZIP 압축 해제 및 메타데이터 검증
+2. Bundle을 임시 remote로 추가
+3. `git fetch` 로 외부 커밋 가져오기
+4. 각 브랜치별로 `git merge` 실행 (양쪽 히스토리 보존)
 5. Merge 결과 확인 후 origin으로 push
 6. 임시 파일 및 remote 정리
 

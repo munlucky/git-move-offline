@@ -16,16 +16,19 @@ async function importRepository() {
   if (args.length === 0) {
     console.log('Usage: node import.js <zip-file-path> [options]');
     console.log('\nOptions:');
+    console.log('  --init              Initial import mode (for empty repository)');
     console.log('  --auto              Auto mode using config.json');
     console.log('  --dry-run           Simulate without making changes');
     console.log('  --branch <names>    Only merge specified branches (comma-separated)');
     console.log('\nExample:');
     console.log('  node import.js git-export-20251025.zip');
+    console.log('  node import.js git-export-20251025.zip --init');
     console.log('  node import.js git-export-20251025.zip --branch main,develop');
     process.exit(1);
   }
 
   const zipFilePath = path.resolve(args[0]);
+  const initMode = args.includes('--init');
   const autoMode = args.includes('--auto');
   const dryRun = args.includes('--dry-run');
   const branchIndex = args.indexOf('--branch');
@@ -55,14 +58,46 @@ async function importRepository() {
   }
   Interactive.completeProgress(true);
 
-  // 4. 작업 디렉토리 상태 확인
-  if (git.hasUncommittedChanges()) {
+  // 4. 저장소 상태 확인 및 모드 자동 감지
+  const isEmptyRepo = git.isEmptyRepo();
+  const localBranches = git.getLocalBranches();
+  const commitCount = git.getCommitCount();
+
+  let useInitMode = initMode;
+
+  // 자동 감지: 빈 저장소이거나 커밋이 없으면 init 모드 제안
+  if (!initMode && (isEmptyRepo || commitCount === 0)) {
+    Interactive.info('빈 저장소가 감지되었습니다.');
+    console.log('이 저장소는 커밋이 없는 상태입니다.');
+
+    if (!autoMode) {
+      const useInit = await Interactive.confirm(
+        '최초 import 모드를 사용하시겠습니까? (더 빠르고 간단합니다)',
+        true
+      );
+      useInitMode = useInit;
+    } else {
+      useInitMode = true;
+      console.log('자동으로 최초 import 모드를 사용합니다.');
+    }
+  }
+
+  if (useInitMode) {
+    Interactive.info('초기 Import 모드: Bundle에서 직접 브랜치를 생성합니다.');
+  } else {
+    Interactive.info('동기화 모드: 기존 브랜치에 외부 변경사항을 병합합니다.');
+  }
+
+  // 작업 디렉토리 상태 확인 (init 모드가 아닐 때만)
+  if (!useInitMode && git.hasUncommittedChanges()) {
     Interactive.error('You have uncommitted changes. Please commit or stash them before importing.');
     process.exit(1);
   }
 
-  const currentBranch = git.getCurrentBranch();
-  console.log(`Current branch: ${currentBranch}`);
+  const currentBranch = git.hasAnyCommits() ? git.getCurrentBranch() : null;
+  if (currentBranch) {
+    console.log(`Current branch: ${currentBranch}`);
+  }
 
   // 5. 임시 디렉토리 생성 및 압축 해제
   const tempDir = path.join(repoPath, '.git-import-temp');
@@ -136,97 +171,124 @@ async function importRepository() {
 
     console.log(`\nBranches to merge: ${branchesToMerge.join(', ')}`);
 
-    // 10. Merge 시뮬레이션 또는 실행
+    // 10. 브랜치 처리 (모드에 따라 다르게 동작)
     const mergeResults = [];
 
-    for (const branch of branchesToMerge) {
-      console.log(`\n--- Processing branch: ${branch} ---`);
+    if (useInitMode) {
+      // ===== 초기 Import 모드: 직접 체크아웃 =====
+      for (const branch of branchesToMerge) {
+        console.log(`\n--- Processing branch: ${branch} ---`);
 
-      const remoteBranch = `${REMOTE_NAME}/${branch}`;
-      const branchInfo = metadata.branchMetadata[branch];
+        const remoteBranch = `${REMOTE_NAME}/${branch}`;
+        const branchInfo = metadata.branchMetadata[branch];
 
-      if (branchInfo) {
-        console.log(`  Latest commit: ${branchInfo.hash.substring(0, 7)}`);
-        console.log(`  Message: ${branchInfo.message}`);
-        console.log(`  Author: ${branchInfo.author}`);
-      }
-
-      // 로컬에 같은 이름의 브랜치가 있는지 확인
-      const localBranches = git.getLocalBranches();
-      const hasLocalBranch = localBranches.includes(branch);
-
-      let action = 'merge';
-      if (!hasLocalBranch) {
-        // 로컬에 없으면 새로 생성
-        action = await Interactive.select(
-          `Branch '${branch}' does not exist locally. What to do?`,
-          ['Create and checkout', 'Skip']
-        );
-
-        if (action === 'Skip') {
-          console.log(`  Skipped: ${branch}`);
-          continue;
+        if (branchInfo) {
+          console.log(`  Latest commit: ${branchInfo.hash.substring(0, 7)}`);
+          console.log(`  Message: ${branchInfo.message}`);
+          console.log(`  Author: ${branchInfo.author}`);
         }
 
         if (!dryRun) {
+          // Bundle에서 직접 체크아웃 (merge 없이)
           git.execGit(`checkout -b ${branch} ${remoteBranch}`);
-          console.log(`  ✓ Created and checked out branch: ${branch}`);
+          console.log(`  ✓ Created branch: ${branch}`);
         } else {
-          console.log(`  [DRY-RUN] Would create and checkout branch: ${branch}`);
+          console.log(`  [DRY-RUN] Would create branch: ${branch}`);
         }
 
         mergeResults.push({ branch, status: 'created', conflicts: [] });
-        continue;
       }
 
-      // Merge 전 확인
-      if (!autoMode && !dryRun) {
-        const shouldMerge = await Interactive.confirm(`Merge ${remoteBranch} into ${branch}?`, true);
-        if (!shouldMerge) {
-          console.log(`  Skipped: ${branch}`);
+    } else {
+      // ===== 동기화 모드: Merge 방식 =====
+      for (const branch of branchesToMerge) {
+        console.log(`\n--- Processing branch: ${branch} ---`);
+
+        const remoteBranch = `${REMOTE_NAME}/${branch}`;
+        const branchInfo = metadata.branchMetadata[branch];
+
+        if (branchInfo) {
+          console.log(`  Latest commit: ${branchInfo.hash.substring(0, 7)}`);
+          console.log(`  Message: ${branchInfo.message}`);
+          console.log(`  Author: ${branchInfo.author}`);
+        }
+
+        // 로컬에 같은 이름의 브랜치가 있는지 확인
+        const hasLocalBranch = localBranches.includes(branch);
+
+        if (!hasLocalBranch) {
+          // 로컬에 없으면 새로 생성
+          const action = await Interactive.select(
+            `Branch '${branch}' does not exist locally. What to do?`,
+            ['Create and checkout', 'Skip']
+          );
+
+          if (action === 'Skip') {
+            console.log(`  Skipped: ${branch}`);
+            continue;
+          }
+
+          if (!dryRun) {
+            git.execGit(`checkout -b ${branch} ${remoteBranch}`);
+            console.log(`  ✓ Created and checked out branch: ${branch}`);
+          } else {
+            console.log(`  [DRY-RUN] Would create and checkout branch: ${branch}`);
+          }
+
+          mergeResults.push({ branch, status: 'created', conflicts: [] });
           continue;
         }
-      }
 
-      // 해당 브랜치로 체크아웃 (현재 브랜치가 아니면)
-      if (git.getCurrentBranch() !== branch) {
+        // Merge 전 확인
+        if (!autoMode && !dryRun) {
+          const shouldMerge = await Interactive.confirm(`Merge ${remoteBranch} into ${branch}?`, true);
+          if (!shouldMerge) {
+            console.log(`  Skipped: ${branch}`);
+            continue;
+          }
+        }
+
+        // 해당 브랜치로 체크아웃 (현재 브랜치가 아니면)
+        const currentActiveBranch = git.hasAnyCommits() ? git.getCurrentBranch() : null;
+        if (currentActiveBranch && currentActiveBranch !== branch) {
+          if (!dryRun) {
+            git.execGit(`checkout ${branch}`);
+          } else {
+            console.log(`  [DRY-RUN] Would checkout: ${branch}`);
+          }
+        }
+
+        // Merge 실행
         if (!dryRun) {
-          git.execGit(`checkout ${branch}`);
+          const result = git.mergeBranch(remoteBranch, {
+            message: `Merge external changes from ${branch}`,
+            noFastForward: true
+          });
+
+          if (result.success) {
+            console.log(`  ✓ Merged successfully`);
+            mergeResults.push({ branch, status: 'merged', conflicts: [] });
+          } else {
+            Interactive.warning(`Merge conflicts detected in branch: ${branch}`);
+            console.log('  Conflicted files:');
+            result.conflicts.forEach(file => console.log(`    - ${file}`));
+
+            mergeResults.push({ branch, status: 'conflict', conflicts: result.conflicts });
+
+            Interactive.info('Please resolve conflicts manually:');
+            console.log('  1. Edit conflicted files');
+            console.log('  2. git add <resolved-files>');
+            console.log('  3. git commit');
+            console.log('  4. Re-run this import script\n');
+
+            // 충돌 발생 시 중단
+            cleanup();
+            process.exit(1);
+          }
         } else {
-          console.log(`  [DRY-RUN] Would checkout: ${branch}`);
+          console.log(`  [DRY-RUN] Would merge: ${remoteBranch} into ${branch}`);
+          mergeResults.push({ branch, status: 'simulated', conflicts: [] });
         }
-      }
-
-      // Merge 실행
-      if (!dryRun) {
-        const result = git.mergeBranch(remoteBranch, {
-          message: `Merge external changes from ${branch}`,
-          noFastForward: true
-        });
-
-        if (result.success) {
-          console.log(`  ✓ Merged successfully`);
-          mergeResults.push({ branch, status: 'merged', conflicts: [] });
-        } else {
-          Interactive.warning(`Merge conflicts detected in branch: ${branch}`);
-          console.log('  Conflicted files:');
-          result.conflicts.forEach(file => console.log(`    - ${file}`));
-
-          mergeResults.push({ branch, status: 'conflict', conflicts: result.conflicts });
-
-          Interactive.info('Please resolve conflicts manually:');
-          console.log('  1. Edit conflicted files');
-          console.log('  2. git add <resolved-files>');
-          console.log('  3. git commit');
-          console.log('  4. Re-run this import script\n');
-
-          // 충돌 발생 시 중단
-          cleanup();
-          process.exit(1);
-        }
-      } else {
-        console.log(`  [DRY-RUN] Would merge: ${remoteBranch} into ${branch}`);
-        mergeResults.push({ branch, status: 'simulated', conflicts: [] });
       }
     }
 
