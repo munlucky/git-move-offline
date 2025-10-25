@@ -1,214 +1,155 @@
-# 사용 가이드
+# 상세 사용 가이드 (USAGE)
 
-## 시나리오별 사용법
+이 문서는 `git-move-offline`의 모든 기능과 옵션에 대해 자세히 설명합니다.
 
-### 1. 최초 1회 전체 이동
+## 목차
 
-외부에서 개발한 프로젝트를 처음으로 사내망으로 가져오는 경우:
+- [명령어](#명령어)
+  - [`gitmv export`](#gitmv-export)
+  - [`gitmv import`](#gitmv-import)
+- [Import 모드](#import-모드)
+  - [초기 모드 (Initial Mode)](#초기-모드)
+  - [동기화 모드 (Sync Mode)](#동기화-모드)
+- [설정 파일 (`config.json`)](#설정-파일)
+- [상황별 가이드](#상황별-가이드)
+  - [최초로 저장소 전체 이동하기](#최초로-저장소-전체-이동하기)
+  - [주기적으로 변경사항 동기화하기](#주기적으로-변경사항-동기화하기)
+  - [Merge 충돌 해결하기](#merge-충돌-해결하기)
+- [문제 해결 (Troubleshooting)](#문제-해결)
+- [작동 원리](#작동-원리)
 
-```bash
-# 외부 PC (인터넷망)
-cd /path/to/project
-gitmv export
-# → git-export-20251025-143020.zip 생성
+---
 
-# 사내망 PC (빈 저장소 준비)
-git init
-git remote add origin https://internal-git.company.com/project.git
+## 명령어
 
-# Import 실행 - 자동으로 초기 모드 감지됨
-gitmv import git-export-20251025.zip
-# → "빈 저장소가 감지되었습니다" 메시지 표시
-# → "최초 import 모드를 사용하시겠습니까?" 확인
-# → 브랜치들이 직접 체크아웃됨 (merge 없이)
-```
+### `gitmv export`
 
-**초기 모드의 장점:**
-
-- Merge 과정 없이 빠르게 브랜치 생성
-- 복잡한 충돌 처리 불필요
-- 깨끗한 히스토리 유지
-
-### 2. 정기적 동기화
-
-이미 사내망에 프로젝트가 있고, 외부 변경사항을 주기적으로 반영하는 경우:
+외부망 PC의 Git 저장소를 `.zip` 파일로 패키징합니다.
 
 ```bash
-# 외부 PC (최신 커밋 반영 후)
-cd /path/to/project
-gitmv export
-# → git-export-20251025-143020.zip 생성
-
-# 사내망 PC (기존 프로젝트 디렉토리)
-cd /path/to/existing-project
-gitmv import git-export-20251025.zip
-# → 자동으로 동기화 모드로 실행
-# → 인터랙티브 모드에서 merge할 브랜치 선택
-# → 각 브랜치별로 외부 변경사항 병합
+gitmv export [options]
 ```
 
-**동기화 모드의 특징:**
+**동작:**
+1.  현재 저장소의 모든 브랜치, 태그, 커밋 히스토리를 `repository.bundle` 파일로 만듭니다.
+2.  브랜치, 태그 등의 메타데이터를 `metadata.json` 파일로 저장합니다.
+3.  두 파일을 `git-export-YYYYMMDD-HHMMSS.zip` 형태로 압축합니다.
 
-- 기존 사내 커밋과 외부 커밋을 merge
-- 양쪽 히스토리 모두 보존
-- 충돌 발생 시 안내 및 해결 옵션 제공
+**주요 옵션:**
+*   `--branch <name>`: 특정 브랜치 하나만 지정하여 export 합니다.
+*   `--all` (기본값): 모든 브랜치와 태그를 포함합니다.
 
-### 3. 특정 브랜치만 동기화
+---
+
+### `gitmv import <file.zip>`
+
+`export`로 생성된 `.zip` 파일을 내부망 PC의 Git 저장소에 적용합니다.
 
 ```bash
-# main과 develop 브랜치만 가져오기
-gitmv import git-export-20251025.zip --branch main,develop
+gitmv import <file.zip> [options]
 ```
 
-### 4. Dry-Run으로 사전 확인
+**동작:**
+1.  `.zip` 파일의 압축을 해제하고 유효성을 검사합니다.
+2.  현재 저장소의 상태(빈 저장소 여부)를 확인하여 '초기 모드' 또는 '동기화 모드'를 제안합니다.
+3.  선택된 모드에 따라 외부 변경사항을 현재 저장소에 적용합니다.
 
-```bash
-# 실제 변경 없이 시뮬레이션
-gitmv import git-export-20251025.zip --dry-run
-```
+**주요 옵션:**
+*   `--init`: '초기 모드'를 강제로 사용합니다. 빈 저장소가 아닐 경우 위험할 수 있습니다.
+*   `--branch <names>`: 쉼표로 구분하여 특정 브랜치들만 import 합니다. (예: `--branch main,develop`)
+*   `--auto`: `config.json` 설정에 따라 사용자 확인 없이 자동으로 merge와 push를 진행합니다.
+*   `--dry-run`: 실제 변경을 적용하지 않고, 어떤 작업이 수행될지 시뮬레이션 결과만 보여줍니다.
 
-## Merge 충돌 해결
+---
 
-충돌이 발생한 경우:
+## Import 모드
 
-```bash
-# 1. Import 중 충돌 발생 시 스크립트가 중단되고 충돌 파일 표시됨
-# 2. 수동으로 충돌 해결
-code src/conflicted-file.js  # 파일 편집
+### 초기 모드 (Initial Mode)
 
-# 3. 해결된 파일 스테이징
-git add src/conflicted-file.js
+**언제 사용되나?**
+- 비어있는 Git 저장소에 처음으로 외부 프로젝트를 복제할 때 사용됩니다.
+- `git init`만 실행된 커밋 없는 저장소에서 `import`를 실행하면 자동으로 제안됩니다.
 
-# 4. Merge 커밋 완료
-git commit
+**특징:**
+- Merge 과정 없이 원본 브랜치와 태그를 그대로 생성하므로 매우 빠릅니다.
+- 충돌이 발생할 가능성이 없습니다.
 
-# 5. 나머지 브랜치가 있다면 import 재실행
-gitmv import git-export-20251025.zip
-```
+### 동기화 모드 (Sync Mode)
 
-## 자동화 설정
+**언제 사용되나?**
+- 이미 코드가 들어있는 저장소에 외부의 추가 변경사항을 반영(동기화)할 때 사용됩니다. (기본 동작)
 
-`config.json` 파일 생성:
+**특징:**
+- 내부 저장소의 브랜치와 외부 저장소의 브랜치를 `git merge` 합니다.
+- 양쪽의 히스토리가 모두 보존됩니다.
+- 만약 같은 부분을 다르게 수정했다면 Merge 충돌이 발생할 수 있습니다.
 
+---
+
+## 설정 파일 (`config.json`)
+
+반복적인 작업을 자동화하기 위해 프로젝트 루트에 `config.json` 파일을 생성할 수 있습니다.
+
+**예시:**
 ```json
 {
   "autoMergeBranches": ["main", "develop"],
-  "skipBranches": ["experimental"],
-  "autoPush": false
+  "skipBranches": ["feature/.*", "hotfix"],
+  "autoPush": true,
+  "conflictStrategy": "manual"
 }
 ```
 
-자동 모드 실행:
+*   `autoMergeBranches`: `--auto` 모드에서 자동으로 merge를 시도할 브랜치 목록 (정규식 가능).
+*   `skipBranches`: `import` 과정에서 무시할 브랜치 목록 (정규식 가능).
+*   `autoPush`: `--auto` 모드에서 merge 성공 시 자동으로 `origin`에 push할지 여부.
+*   `conflictStrategy`: 충돌 시 정책. (현재는 `manual`만 지원)
 
-```bash
-gitmv import git-export-20251025.zip --auto
-```
+---
 
-## 모드 비교
+## 상황별 가이드
 
-| 항목            | 초기 모드 (--init)         | 동기화 모드 (기본)        |
-| --------------- | -------------------------- | ------------------------- |
-| **사용 시기**   | 빈 저장소 또는 최초 import | 기존 저장소에 정기 동기화 |
-| **자동 감지**   | 커밋 0개일 때 자동 제안    | 커밋 있으면 자동 선택     |
-| **브랜치 처리** | Bundle에서 직접 checkout   | 기존 브랜치와 merge       |
-| **히스토리**    | Bundle 히스토리만          | 양쪽 히스토리 보존        |
-| **충돌 가능성** | 없음                       | 있음 (merge 시)           |
-| **속도**        | 빠름                       | 상대적으로 느림           |
+### 최초로 저장소 전체 이동하기
+1.  **외부망 PC**: `cd /project` -> `gitmv export`
+2.  `git-export-....zip` 파일을 USB 등으로 내부망 PC에 복사합니다.
+3.  **내부망 PC**:
+    ```bash
+    mkdir my-project && cd my-project
+    git init
+    git remote add origin <내부망 Git 서버 주소>
+    gitmv import /path/to/git-export-....zip
+    ```
+4.  스크립트가 '초기 모드'를 제안하면 `Yes`를 선택합니다.
 
-## 주의사항
+### 주기적으로 변경사항 동기화하기
+1.  **외부망 PC**: `cd /project` -> (작업 및 커밋) -> `gitmv export`
+2.  `.zip` 파일을 내부망 PC로 복사합니다.
+3.  **내부망 PC**:
+    ```bash
+    cd /internal-project
+    gitmv import /path/to/git-export-....zip
+    ```
+4.  스크립트가 동기화할 브랜치를 보여주면, 원하는 브랜치를 선택하고 진행합니다.
 
-### Export 시
+### Merge 충돌 해결하기
+1.  `import` 중 충돌이 발생하면 스크립트가 멈추고 충돌된 파일 목록을 보여줍니다.
+2.  VS Code 등 에디터에서 해당 파일들의 충돌 부분을 직접 수정합니다.
+3.  수정이 완료되면, 터미널에서 `git add .`와 `git commit`으로 merge 커밋을 직접 완료합니다.
+4.  `gitmv import ...` 명령어를 다시 실행하면, 스크립트가 해결된 상태를 감지하고 나머지 과정을 이어갑니다.
 
-- 미커밋된 변경사항은 포함되지 않음
-- 모든 브랜치와 태그가 포함됨
-- Bundle 검증이 자동으로 수행됨
+---
 
-### Import 시
+## 문제 해결 (Troubleshooting)
 
-- **초기 모드**: 빈 Git 저장소에서만 사용 권장
-- **동기화 모드**: 기존 작업 디렉토리가 깨끗해야 함 (커밋되지 않은 변경사항 없음)
-- 기존 히스토리와 병합되므로 양쪽 히스토리 모두 보존됨
-- Merge 전 항상 확인 프롬프트 제공 (auto 모드 제외)
+- **`command not found: gitmv`**: `npm install -g` 로 설치했는지, 터미널을 재시작했는지 확인하세요. 자세한 내용은 `INSTALL.md`를 참고하세요.
+- **`Not a Git repository`**: Git 저장소 안에서 명령어를 실행해야 합니다. `git init`으로 저장소를 생성하세요.
+- **`Working directory is not clean`**: 커밋하지 않은 변경사항이 남아있습니다. `git commit` 또는 `git stash`로 작업 내용을 정리한 후 다시 시도하세요.
 
-## 트러블슈팅
+---
 
-### "Not a Git repository" 에러
+## 작동 원리
 
-```bash
-# Git 저장소가 아닌 디렉토리에서 실행한 경우
-git init
-git remote add origin <url>
-```
+`git-move-offline`은 Git의 내장 기능인 `git bundle`을 핵심적으로 사용합니다. `git bundle`은 Git 저장소의 모든 객체(커밋, 브랜치, 태그 등)를 하나의 바이너리 파일로 묶어주는 기능으로, 네트워크 없이도 `git clone`, `fetch`가 가능하게 해줍니다.
 
-### Bundle 검증 실패
-
-- ZIP 파일이 손상되었을 가능성
-- 다시 export 후 재시도
-
-### Remote origin이 없음
-
-```bash
-# Origin remote 추가
-git remote add origin https://internal-git.company.com/project.git
-```
-
-### Push 권한 없음
-
-- 사내 Git 서버 접근 권한 확인
-- 수동으로 push: `git push origin <branch-name>`
-
-## 작업 흐름 예시
-
-### 주간 동기화 프로세스
-
-**매주 금요일 (외부 PC):**
-
-```bash
-cd /project
-git pull origin main
-git pull origin develop
-gitmv export
-# → USB에 zip 파일 복사
-```
-
-**매주 월요일 (사내망 PC):**
-
-```bash
-cd /internal-project
-# USB에서 zip 파일 복사
-gitmv import git-export-20251025.zip
-# → main, develop 선택
-# → 확인 후 push
-```
-
-## 파일 구조
-
-Export된 ZIP 파일 내용:
-
-```
-git-export-20251025-143020.zip
-├── repository.bundle      # 전체 Git 히스토리
-└── metadata.json         # 브랜치/태그 정보
-```
-
-## Git Bundle이란?
-
-Git Bundle은 Git의 공식 기능으로, 전체 저장소를 단일 파일로 패키징합니다:
-
-- 모든 커밋, 브랜치, 태그 포함
-- Git의 무결성 검증 기능 활용
-- 네트워크 없이 저장소 복제 가능
-- `git clone` 대신 bundle 파일 사용 가능
-
-## 보안 고려사항
-
-- ZIP 파일에는 전체 소스코드와 히스토리가 포함됨
-- 이동 중 파일 암호화 권장
-- 민감한 정보 (.env 등) 제외 확인
-- USB 이동 시 분실 주의
-
-## 성능 팁
-
-- 대용량 저장소는 bundle 생성에 시간 소요
-- 불필요한 브랜치 정리 후 export 권장
-- Git LFS 파일은 별도 처리 필요할 수 있음
+- **Export**: `git bundle create` 명령으로 `.bundle` 파일을 생성하고, 메타데이터와 함께 압축합니다.
+- **Import**: `.bundle` 파일을 임시 remote로 추가한 뒤, `git fetch`와 `git merge`를 실행하여 현재 저장소에 변경사항을 적용합니다.
