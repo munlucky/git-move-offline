@@ -61,12 +61,16 @@ async function main() {
   try {
     // export 명령어
     if (command === 'export') {
+      // process.argv에서 'export' 제거 (export.js가 올바르게 인자를 파싱하도록)
+      process.argv.splice(2, 1);
       await runExport();
       return;
     }
 
     // import 명령어
     if (command === 'import') {
+      // process.argv에서 'import' 제거 (import.js가 올바르게 인자를 파싱하도록)
+      process.argv.splice(2, 1);
       await runImport();
       return;
     }
