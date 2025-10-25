@@ -9,18 +9,20 @@
 - **간편한 사용**: 간단한 `export`, `import` 명령어로 모든 작업을 수행합니다.
 - **플랫폼 호환성**: Windows, macOS, Linux를 모두 지원합니다.
 - **인터랙티브 모드**: 동기화할 브랜치를 직접 선택하고 제어할 수 있습니다.
+- **다국어 지원**: 한국어와 영어를 지원합니다.
 
 ## 기본 워크플로우
 
-```
-┌──────────────────┐      ┌──────────┐      ┌──────────────────┐
-│   PC A (외부망)  │      │   USB 등 │      │   PC B (내부망)  │
-│ (Internet-Yes)   │      │ (Movable)│      │ (Internet-No)    │
-└──────────────────┘      └──────────┘      └──────────────────┘
-        │                      │                      │
-1. gitmv export        ───►   2. 파일 복사   ───►   3. gitmv import
-   (zip 파일 생성)            (zip 파일 이동)         (저장소에 반영)
-        │                      │                      │
+```mermaid
+graph LR
+    A["PC A (외부망)<br/>Internet-Yes"] -->|"1. gitmv export<br/>(zip 파일 생성)"| B["USB 등<br/>(이동 매체)"]
+    B -->|"2. 파일 복사<br/>(zip 파일 이동)"| C["PC B (내부망)<br/>Internet-No"]
+    C -->|"3. gitmv import<br/>(저장소에 반영)"| D["✓ 완료"]
+
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#ffe1f5
+    style D fill:#e1ffe1
 ```
 
 ## 빠른 시작
@@ -32,6 +34,8 @@
 ```bash
 npm install -g git-move-offline
 ```
+
+오프라인 환경에서의 설치 방법은 [INSTALL.md](./INSTALL.md)를 참고하세요.
 
 ### 2. 사용법
 
@@ -54,10 +58,61 @@ cd /path/to/internal-project
 gitmv import /path/to/git-export-YYYYMMDD-HHMMSS.zip
 ```
 
+## 주요 명령어
+
+### Export
+```bash
+gitmv export [옵션]
+```
+
+**옵션:**
+- `--branch <name>`: 특정 브랜치만 export
+- `--all`: 모든 브랜치와 태그 포함 (기본값)
+- `--auto`: 설정 파일에 따라 자동 실행
+
+**예시:**
+```bash
+gitmv export                    # 모든 브랜치 export
+gitmv export --branch main      # main 브랜치만 export
+```
+
+### Import
+```bash
+gitmv import <file.zip> [옵션]
+```
+
+**옵션:**
+- `--init`: 초기 모드로 강제 실행 (빈 저장소에 복제)
+- `--branch <names>`: 특정 브랜치만 import (쉼표로 구분)
+- `--auto`: 설정 파일에 따라 자동으로 merge/push
+- `--dry-run`: 실제 변경 없이 시뮬레이션만 실행
+
+**예시:**
+```bash
+gitmv import git-export-20251025.zip
+gitmv import git-export-20251025.zip --init
+gitmv import git-export-20251025.zip --branch main,develop
+gitmv import git-export-20251025.zip --dry-run
+```
+
+### 기타 옵션
+```bash
+gitmv --help                    # 도움말 표시
+gitmv --version                 # 버전 정보 표시
+gitmv --lang ko                 # 언어 설정 (ko/en)
+```
+
 ## 상세 정보
 
-- **자세한 사용법 및 모든 명령어 옵션**: [**USAGE.md**](./USAGE.md)
-- **오프라인 설치 등 다양한 설치 방법**: [**INSTALL.md**](./INSTALL.md)
+- **자세한 사용법 및 모든 명령어 옵션**: [USAGE.md](./USAGE.md)
+- **오프라인 설치 등 다양한 설치 방법**: [INSTALL.md](./INSTALL.md)
+
+## 작동 원리
+
+`git-move-offline`는 Git의 내장 기능인 `git bundle`을 사용합니다. `git bundle`은 Git 저장소의 모든 객체(커밋, 브랜치, 태그 등)를 하나의 바이너리 파일로 묶어주는 기능으로, 네트워크 없이도 `git clone`, `fetch`가 가능하게 해줍니다.
+
+- **Export**: `git bundle create` 명령으로 `.bundle` 파일을 생성하고, 메타데이터와 함께 압축합니다.
+- **Import**: `.bundle` 파일을 임시 remote로 추가한 뒤, `git fetch`와 `git merge`를 실행하여 현재 저장소에 변경사항을 적용합니다.
 
 ## 라이선스
 
