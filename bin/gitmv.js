@@ -25,8 +25,19 @@ function showHelp() {
 ${getMessage('toolDescription')}
 
 ${getMessage('usageTitle')}
-  gitmv export                ${getMessage('exportCommand')}
-  gitmv import <file.zip>     ${getMessage('importCommand')}
+  gitmv export [options]          ${getMessage('exportCommand')}
+  gitmv import <file.zip> [options] ${getMessage('importCommand')}
+
+${getMessage('exportOptionsTitle')}
+  --branch <name>          ${getMessage('exportBranchOption')}
+  --all                    ${getMessage('exportAllOption')}
+  --auto                   ${getMessage('autoOptionDesc')}
+
+${getMessage('importOptionsTitle')}
+  --branch <names>         ${getMessage('branchOption')}
+  --init                   ${getMessage('initOption')}
+  --auto                   ${getMessage('autoOptionDesc')}
+  --dry-run                ${getMessage('dryRunOption')}
 
 ${getMessage('optionsTitle')}
   -h, --help               ${getMessage('helpOption')}
@@ -35,13 +46,10 @@ ${getMessage('optionsTitle')}
 
 ${getMessage('examplesTitle')}
   gitmv export
+  gitmv export --branch main
   gitmv import git-export-20251025.zip
   gitmv import git-export-20251025.zip --init
   gitmv import git-export-20251025.zip --branch main,develop
-
-${getMessage('moreInfoTitle')}
-  ${getMessage('exportOptions')}
-  ${getMessage('importOptions')}
   `);
 }
 

@@ -10,6 +10,12 @@ const { getMessage } = require('./lib/i18n');
 async function exportRepository() {
   console.log(getMessage('exportTitle'));
 
+  const args = process.argv.slice(2);
+  const branchIndex = args.indexOf('--branch');
+  const specificBranch = branchIndex !== -1 && args[branchIndex + 1] ? args[branchIndex + 1] : null;
+  const allBranches = args.includes('--all');
+  const autoMode = args.includes('--auto');
+
   const repoPath = process.cwd();
   const git = new GitUtils(repoPath);
 
@@ -24,26 +30,78 @@ async function exportRepository() {
 
   // 2. Check for uncommitted changes
   if (git.hasUncommittedChanges()) {
-    Interactive.warning(getMessage('uncommittedChanges'));
-    const shouldContinue = await Interactive.confirm(getMessage('continueAnyway'));
-    if (!shouldContinue) {
-      console.log(getMessage('exportCancelled'));
-      process.exit(0);
+    if (!autoMode) {
+      Interactive.warning(getMessage('uncommittedChanges'));
+      const shouldContinue = await Interactive.confirm(getMessage('continueAnyway'));
+      if (!shouldContinue) {
+        console.log(getMessage('exportCancelled'));
+        process.exit(0);
+      }
+    } else {
+      Interactive.warning(getMessage('uncommittedChanges'));
     }
   }
 
-  // 3. Collect metadata
+  // 3. Select branches to export
+  const localBranches = git.getLocalBranches();
+  if (localBranches.length === 0) {
+    Interactive.error(getMessage('noBranches'));
+    process.exit(1);
+  }
+
+  let branchesToExport = [];
+  let bundleArgs = '';
+
+  if (specificBranch) {
+    if (!localBranches.includes(specificBranch)) {
+      Interactive.error(getMessage('branchNotFound', specificBranch));
+      process.exit(1);
+    }
+    branchesToExport = [specificBranch];
+    bundleArgs = specificBranch;
+    console.log(getMessage('exportingBranch', specificBranch));
+  } else if (allBranches) {
+    branchesToExport = localBranches;
+    bundleArgs = '--all';
+    console.log(getMessage('exportingAllBranches', localBranches.length));
+  } else if (autoMode) {
+    // In auto mode without a specific branch, default to all
+    branchesToExport = localBranches;
+    bundleArgs = '--all';
+    console.log(getMessage('exportingAllBranchesAuto', localBranches.length));
+  } else {
+    // Interactive mode
+    const ALL_BRANCHES_OPTION = getMessage('allBranches');
+    const choices = [
+      `${ALL_BRANCHES_OPTION} (${localBranches.length})`,
+      ...localBranches
+    ];
+    
+    const answer = await Interactive.select(
+      getMessage('selectBranchToExport'),
+      choices
+    );
+
+    if (answer.startsWith(ALL_BRANCHES_OPTION)) {
+      branchesToExport = localBranches;
+      bundleArgs = '--all';
+    } else {
+      branchesToExport = [answer];
+      bundleArgs = answer;
+    }
+  }
+
+  // 4. Collect metadata
   Interactive.showProgress(getMessage('collectingMeta'));
   const currentBranch = git.getCurrentBranch();
-  const branches = git.getLocalBranches();
   const tags = git.getAllTags();
-  const branchMetadata = git.getBranchMetadata();
+  const branchMetadata = git.getBranchMetadata(branchesToExport);
   const tagMetadata = git.getTagMetadata();
 
   const metadata = {
     exportDate: new Date().toISOString(),
-    currentBranch,
-    branches,
+    currentBranch: branchesToExport.includes(currentBranch) ? currentBranch : branchesToExport[0],
+    branches: branchesToExport,
     tags,
     branchMetadata,
     tagMetadata,
@@ -51,36 +109,41 @@ async function exportRepository() {
   };
   Interactive.completeProgress(true);
 
-  // 4. Display metadata
+  // 5. Display metadata
   console.log(getMessage('repoInfo'));
-  console.log(getMessage('currentBranch', currentBranch));
-  console.log(getMessage('totalBranches', branches.length));
+  console.log(getMessage('exportingNBranches', branchesToExport.length));
   console.log(getMessage('totalTags', tags.length));
 
-  if (branches.length > 0) {
+  if (branchesToExport.length > 0) {
     console.log(getMessage('branches'));
-    branches.forEach(branch => {
+    branchesToExport.forEach(branch => {
       const info = branchMetadata[branch];
       const marker = branch === currentBranch ? '* ' : '  ';
-      console.log(`${marker}${branch} (${info.hash.substring(0, 7)})`);
+      if (info) {
+        console.log(`${marker}${branch} (${info.hash.substring(0, 7)})`);
+      } else {
+        console.log(`${marker}${branch} (no commit info)`);
+      }
     });
   }
 
-  const shouldProceed = await Interactive.confirm(getMessage('proceedWithExport'), true);
-  if (!shouldProceed) {
-    console.log(getMessage('exportCancelled'));
-    process.exit(0);
+  if (!autoMode) {
+    const shouldProceed = await Interactive.confirm(getMessage('proceedWithExport'), true);
+    if (!shouldProceed) {
+      console.log(getMessage('exportCancelled'));
+      process.exit(0);
+    }
   }
 
-  // 5. Create temporary directory
+  // 6. Create temporary directory
   const tempDir = path.join(repoPath, '.git-export-temp');
   ZipUtils.ensureDir(tempDir);
 
   try {
-    // 6. Create bundle
+    // 7. Create bundle
     Interactive.showProgress(getMessage('creatingBundle'));
     const bundlePath = path.join(tempDir, 'repository.bundle');
-    git.createBundle(bundlePath, '--all');
+    git.createBundle(bundlePath, bundleArgs);
     Interactive.completeProgress(true);
 
     // Verify bundle
@@ -94,11 +157,11 @@ async function exportRepository() {
     const bundleSize = ZipUtils.getFileSize(bundlePath);
     console.log(getMessage('bundleSize', ZipUtils.formatBytes(bundleSize)));
 
-    // 7. Create metadata file
+    // 8. Create metadata file
     const metadataPath = path.join(tempDir, 'metadata.json');
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
 
-    // 8. Create ZIP archive
+    // 9. Create ZIP archive
     const timestamp = ZipUtils.getTimestamp();
     const zipFileName = `git-export-${timestamp}.zip`;
     const zipPath = path.join(repoPath, zipFileName);
@@ -113,12 +176,12 @@ async function exportRepository() {
     const zipSize = ZipUtils.getFileSize(zipPath);
     console.log(getMessage('zipSize', ZipUtils.formatBytes(zipSize)));
 
-    // 9. Cleanup
+    // 10. Cleanup
     Interactive.showProgress(getMessage('cleaningUp'));
     ZipUtils.deletePath(tempDir);
     Interactive.completeProgress(true);
 
-    // 10. Complete
+    // 11. Complete
     Interactive.printBox(getMessage('exportComplete'), [
       getMessage('file', zipFileName),
       getMessage('size', ZipUtils.formatBytes(zipSize)),
