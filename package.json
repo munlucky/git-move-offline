@@ -2,15 +2,16 @@
   "name": "git-move-offline",
   "version": "1.0.0",
   "description": "Git 저장소를 히스토리와 함께 오프라인 환경으로 이동 및 동기화하는 도구",
-  "main": "index.js",
   "bin": {
-    "gitmv": "./bin/gitmv.js"
+    "gitmv": "bin/gitmv.js"
   },
   "scripts": {
     "export": "node export.js",
     "import": "node import.js",
     "pack": "npm pack",
-    "test-install": "npm pack && npm install -g git-move-offline-*.tgz"
+    "test-install": "npm pack && npm install -g git-move-offline-*.tgz",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "files": [
     "bin/",
@@ -46,5 +47,8 @@
     "archiver": "^7.0.1",
     "extract-zip": "^2.0.1",
     "inquirer": "^8.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
   }
 }

@@ -12,7 +12,8 @@ async function exportRepository() {
 
   const args = process.argv.slice(2);
   const branchIndex = args.indexOf('--branch');
-  const specificBranch = branchIndex !== -1 && args[branchIndex + 1] ? args[branchIndex + 1] : null;
+  const specificBranch =
+    branchIndex !== -1 && args[branchIndex + 1] ? args[branchIndex + 1] : null;
   const allBranches = args.includes('--all');
   const autoMode = args.includes('--auto');
 
@@ -32,7 +33,9 @@ async function exportRepository() {
   if (git.hasUncommittedChanges()) {
     if (!autoMode) {
       Interactive.warning(getMessage('uncommittedChanges'));
-      const shouldContinue = await Interactive.confirm(getMessage('continueAnyway'));
+      const shouldContinue = await Interactive.confirm(
+        getMessage('continueAnyway')
+      );
       if (!shouldContinue) {
         console.log(getMessage('exportCancelled'));
         process.exit(0);
@@ -74,9 +77,9 @@ async function exportRepository() {
     const ALL_BRANCHES_OPTION = getMessage('allBranches');
     const choices = [
       `${ALL_BRANCHES_OPTION} (${localBranches.length})`,
-      ...localBranches
+      ...localBranches,
     ];
-    
+
     const answer = await Interactive.select(
       getMessage('selectBranchToExport'),
       choices
@@ -100,12 +103,14 @@ async function exportRepository() {
 
   const metadata = {
     exportDate: new Date().toISOString(),
-    currentBranch: branchesToExport.includes(currentBranch) ? currentBranch : branchesToExport[0],
+    currentBranch: branchesToExport.includes(currentBranch)
+      ? currentBranch
+      : branchesToExport[0],
     branches: branchesToExport,
     tags,
     branchMetadata,
     tagMetadata,
-    repositoryPath: repoPath
+    repositoryPath: repoPath,
   };
   Interactive.completeProgress(true);
 
@@ -116,7 +121,7 @@ async function exportRepository() {
 
   if (branchesToExport.length > 0) {
     console.log(getMessage('branches'));
-    branchesToExport.forEach(branch => {
+    branchesToExport.forEach((branch) => {
       const info = branchMetadata[branch];
       const marker = branch === currentBranch ? '* ' : '  ';
       if (info) {
@@ -128,7 +133,10 @@ async function exportRepository() {
   }
 
   if (!autoMode) {
-    const shouldProceed = await Interactive.confirm(getMessage('proceedWithExport'), true);
+    const shouldProceed = await Interactive.confirm(
+      getMessage('proceedWithExport'),
+      true
+    );
     if (!shouldProceed) {
       console.log(getMessage('exportCancelled'));
       process.exit(0);
@@ -167,10 +175,13 @@ async function exportRepository() {
     const zipPath = path.join(repoPath, zipFileName);
 
     Interactive.showProgress(getMessage('creatingZip'));
-    await ZipUtils.createZip([
-      { path: bundlePath, name: 'repository.bundle' },
-      { path: metadataPath, name: 'metadata.json' }
-    ], zipPath);
+    await ZipUtils.createZip(
+      [
+        { path: bundlePath, name: 'repository.bundle' },
+        { path: metadataPath, name: 'metadata.json' },
+      ],
+      zipPath
+    );
     Interactive.completeProgress(true);
 
     const zipSize = ZipUtils.getFileSize(zipPath);
@@ -182,16 +193,19 @@ async function exportRepository() {
     Interactive.completeProgress(true);
 
     // 11. Complete
-    Interactive.printBox(getMessage('exportComplete'), [
-      getMessage('file', zipFileName),
-      getMessage('size', ZipUtils.formatBytes(zipSize)),
-      getMessage('location', zipPath),
-      '',
-      getMessage('nextSteps'),
-      getMessage('copyZip'),
-      getMessage('runImport')
-    ], 70);
-
+    Interactive.printBox(
+      getMessage('exportComplete'),
+      [
+        getMessage('file', zipFileName),
+        getMessage('size', ZipUtils.formatBytes(zipSize)),
+        getMessage('location', zipPath),
+        '',
+        getMessage('nextSteps'),
+        getMessage('copyZip'),
+        getMessage('runImport'),
+      ],
+      70
+    );
   } catch (error) {
     // Cleanup on error
     Interactive.error(error.message);
@@ -204,7 +218,7 @@ async function exportRepository() {
 
 // Execute
 if (require.main === module) {
-  exportRepository().catch(error => {
+  exportRepository().catch((error) => {
     Interactive.error(error.message);
     console.error(error.stack);
     process.exit(1);

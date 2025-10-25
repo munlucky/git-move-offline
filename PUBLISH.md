@@ -52,6 +52,7 @@ npm whoami
 ```
 
 **선택 사항:**
+
 - README.md에 배지 추가
 - LICENSE 파일 확인
 - CHANGELOG.md 작성
@@ -67,6 +68,7 @@ npm search git-move-offline
 ```
 
 **이름이 이미 사용중이라면:**
+
 - 스코프 사용: `@yourusername/git-move-offline`
 - 다른 이름 사용: `gmo-cli`, `git-offline-sync` 등
 
@@ -137,6 +139,7 @@ npm publish
 ```
 
 **배포 중 확인 사항:**
+
 - ✓ 패키지 크기
 - ✓ 포함된 파일 목록
 - ✓ 경고 메시지
@@ -192,6 +195,7 @@ npm view git-move-offline
 **원인:** 패키지 이름이 이미 존재하거나 권한 없음
 
 **해결:**
+
 ```bash
 # 스코프 추가
 # package.json의 name을 "@yourusername/git-move-offline"로 변경
@@ -205,6 +209,7 @@ npm publish --access public
 **원인:** npm 패키지 이름 규칙 위반
 
 **규칙:**
+
 - 소문자만 사용
 - URL-safe 문자만 사용 (하이픈, 언더스코어 가능)
 - 214자 이하
@@ -214,6 +219,7 @@ npm publish --access public
 **원인:** 비공개 패키지를 무료 계정에서 배포
 
 **해결:**
+
 ```bash
 npm publish --access public
 ```
@@ -223,6 +229,7 @@ npm publish --access public
 **원인:** 2FA 활성화됨
 
 **해결:**
+
 ```bash
 npm publish --otp=123456
 # 또는 프롬프트에서 입력

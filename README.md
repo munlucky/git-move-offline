@@ -20,11 +20,13 @@
 ### npm 전역 설치 (추천)
 
 **공개 npm registry 사용 (인터넷 연결 필요):**
+
 ```bash
 npm install -g git-move-offline
 ```
 
 **오프라인 설치 (사내망 환경):**
+
 ```bash
 # 1. 외부 PC에서 패키지 생성
 npm pack
@@ -37,6 +39,7 @@ npm install -g ./git-move-offline-1.0.0.tgz
 ```
 
 **자동 설치 스크립트 사용:**
+
 ```bash
 # Linux/Mac
 ./scripts/install-local.sh
@@ -50,6 +53,7 @@ scripts\install-local.bat
 ### 개발 모드 설치
 
 이 저장소를 직접 사용하려면:
+
 ```bash
 git clone <repository-url>
 cd git-move-offline
@@ -74,6 +78,7 @@ node export.js
 **생성되는 파일**: `git-export-YYYYMMDD-HHMMSS.zip`
 
 이 파일에는 다음이 포함됩니다:
+
 - 전체 Git 히스토리 (bundle 파일)
 - 브랜치 정보 및 최신 커밋 메타데이터
 - 태그 정보
@@ -159,6 +164,7 @@ gitmv import --help
 ## 작동 원리
 
 ### Export 과정
+
 1. `git bundle create --all` 명령으로 모든 브랜치/태그 패키징
 2. 브랜치별 최신 커밋 해시 및 메타데이터 JSON 생성
 3. 날짜/시간이 포함된 ZIP 파일로 압축
@@ -166,6 +172,7 @@ gitmv import --help
 ### Import 과정
 
 **초기 모드 (빈 저장소):**
+
 1. ZIP 압축 해제 및 메타데이터 검증
 2. Bundle을 임시 remote로 추가
 3. `git fetch` 로 모든 커밋 가져오기
@@ -174,6 +181,7 @@ gitmv import --help
 6. 임시 파일 정리
 
 **동기화 모드 (기존 저장소):**
+
 1. ZIP 압축 해제 및 메타데이터 검증
 2. Bundle을 임시 remote로 추가
 3. `git fetch` 로 외부 커밋 가져오기
@@ -184,6 +192,7 @@ gitmv import --help
 ## Merge 충돌 처리
 
 충돌이 발생한 경우:
+
 1. 스크립트가 충돌 파일 목록 표시
 2. 수동으로 충돌 해결
 3. `git add <해결된파일>` 실행

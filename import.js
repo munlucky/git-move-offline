@@ -33,9 +33,10 @@ async function importRepository() {
   const autoMode = args.includes('--auto');
   const dryRun = args.includes('--dry-run');
   const branchIndex = args.indexOf('--branch');
-  const specificBranches = branchIndex !== -1 && args[branchIndex + 1]
-    ? args[branchIndex + 1].split(',').map(b => b.trim())
-    : null;
+  const specificBranches =
+    branchIndex !== -1 && args[branchIndex + 1]
+      ? args[branchIndex + 1].split(',').map((b) => b.trim())
+      : null;
 
   if (dryRun) {
     Interactive.warning(getMessage('dryRunMode'));
@@ -124,7 +125,9 @@ async function importRepository() {
 
     const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
     console.log(getMessage('exportedRepoInfo'));
-    console.log(getMessage('exportDate', new Date(metadata.exportDate).toLocaleString()));
+    console.log(
+      getMessage('exportDate', new Date(metadata.exportDate).toLocaleString())
+    );
     console.log(getMessage('originalBranch', metadata.currentBranch));
     console.log(getMessage('totalBranches', metadata.branches.length));
     console.log(getMessage('totalTags', metadata.tags.length));
@@ -153,7 +156,9 @@ async function importRepository() {
     let branchesToMerge = metadata.branches;
 
     if (specificBranches) {
-      branchesToMerge = branchesToMerge.filter(b => specificBranches.includes(b));
+      branchesToMerge = branchesToMerge.filter((b) =>
+        specificBranches.includes(b)
+      );
       console.log(getMessage('filteredBranches', branchesToMerge.join(', ')));
     } else if (!autoMode) {
       // Interactive mode
@@ -184,7 +189,9 @@ async function importRepository() {
         const branchInfo = metadata.branchMetadata[branch];
 
         if (branchInfo) {
-          console.log(getMessage('latestCommit', branchInfo.hash.substring(0, 7)));
+          console.log(
+            getMessage('latestCommit', branchInfo.hash.substring(0, 7))
+          );
           console.log(getMessage('message', branchInfo.message));
           console.log(getMessage('author', branchInfo.author));
         }
@@ -199,7 +206,6 @@ async function importRepository() {
 
         mergeResults.push({ branch, status: 'created', conflicts: [] });
       }
-
     } else {
       // ===== Sync Mode: Merge approach =====
       for (const branch of branchesToMerge) {
@@ -209,7 +215,9 @@ async function importRepository() {
         const branchInfo = metadata.branchMetadata[branch];
 
         if (branchInfo) {
-          console.log(getMessage('latestCommit', branchInfo.hash.substring(0, 7)));
+          console.log(
+            getMessage('latestCommit', branchInfo.hash.substring(0, 7))
+          );
           console.log(getMessage('message', branchInfo.message));
           console.log(getMessage('author', branchInfo.author));
         }
@@ -242,7 +250,10 @@ async function importRepository() {
 
         // Confirm before merge
         if (!autoMode && !dryRun) {
-          const shouldMerge = await Interactive.confirm(getMessage('confirmMerge', remoteBranch, branch), true);
+          const shouldMerge = await Interactive.confirm(
+            getMessage('confirmMerge', remoteBranch, branch),
+            true
+          );
           if (!shouldMerge) {
             console.log(getMessage('skipped', branch));
             continue;
@@ -250,7 +261,9 @@ async function importRepository() {
         }
 
         // Checkout to target branch (if not current)
-        const currentActiveBranch = git.hasAnyCommits() ? git.getCurrentBranch() : null;
+        const currentActiveBranch = git.hasAnyCommits()
+          ? git.getCurrentBranch()
+          : null;
         if (currentActiveBranch && currentActiveBranch !== branch) {
           if (!dryRun) {
             git.execGit(`checkout ${branch}`);
@@ -263,7 +276,7 @@ async function importRepository() {
         if (!dryRun) {
           const result = git.mergeBranch(remoteBranch, {
             message: `Merge external changes from ${branch}`,
-            noFastForward: true
+            noFastForward: true,
           });
 
           if (result.success) {
@@ -272,9 +285,13 @@ async function importRepository() {
           } else {
             Interactive.warning(getMessage('mergeConflict', branch));
             console.log(getMessage('conflictedFiles'));
-            result.conflicts.forEach(file => console.log(`    - ${file}`));
+            result.conflicts.forEach((file) => console.log(`    - ${file}`));
 
-            mergeResults.push({ branch, status: 'conflict', conflicts: result.conflicts });
+            mergeResults.push({
+              branch,
+              status: 'conflict',
+              conflicts: result.conflicts,
+            });
 
             Interactive.info(getMessage('resolveConflicts'));
             console.log(getMessage('resolveStep1'));
@@ -296,20 +313,30 @@ async function importRepository() {
     // 11. Summary results
     console.log(getMessage('mergeSummary'));
     Interactive.printTable(
-      [getMessage('branchColumn'), getMessage('statusColumn'), getMessage('conflictsColumn')],
-      mergeResults.map(r => [
+      [
+        getMessage('branchColumn'),
+        getMessage('statusColumn'),
+        getMessage('conflictsColumn'),
+      ],
+      mergeResults.map((r) => [
         r.branch,
         r.status.toUpperCase(),
-        r.conflicts.length > 0 ? r.conflicts.length.toString() : '-'
+        r.conflicts.length > 0 ? r.conflicts.length.toString() : '-',
       ])
     );
 
     // 12. Confirm push
-    if (!dryRun && mergeResults.some(r => r.status === 'merged' || r.status === 'created')) {
+    if (
+      !dryRun &&
+      mergeResults.some((r) => r.status === 'merged' || r.status === 'created')
+    ) {
       const remoteUrl = git.getRemoteUrl('origin');
       if (remoteUrl) {
         console.log(getMessage('remoteUrl', remoteUrl));
-        const shouldPush = await Interactive.confirm(getMessage('confirmPush'), false);
+        const shouldPush = await Interactive.confirm(
+          getMessage('confirmPush'),
+          false
+        );
 
         if (shouldPush) {
           Interactive.showProgress(getMessage('pushing'));
@@ -337,17 +364,22 @@ async function importRepository() {
     if (dryRun) {
       Interactive.printBox(getMessage('dryRunComplete'), [
         getMessage('noChangesMade'),
-        getMessage('reviewActions')
+        getMessage('reviewActions'),
       ]);
     } else {
       Interactive.printBox(getMessage('importComplete'), [
-        getMessage('mergedBranches', mergeResults.filter(r => r.status === 'merged').length),
-        getMessage('createdBranches', mergeResults.filter(r => r.status === 'created').length),
+        getMessage(
+          'mergedBranches',
+          mergeResults.filter((r) => r.status === 'merged').length
+        ),
+        getMessage(
+          'createdBranches',
+          mergeResults.filter((r) => r.status === 'created').length
+        ),
         '',
-        getMessage('repoUpdated')
+        getMessage('repoUpdated'),
       ]);
     }
-
   } catch (error) {
     Interactive.error(error.message);
     cleanup();
@@ -357,7 +389,7 @@ async function importRepository() {
 
 // Execute
 if (require.main === module) {
-  importRepository().catch(error => {
+  importRepository().catch((error) => {
     Interactive.error(error.message);
     console.error(error.stack);
     process.exit(1);

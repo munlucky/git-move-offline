@@ -27,12 +27,14 @@ npm pack
 또는 자동 설치 스크립트 사용:
 
 **Linux/Mac:**
+
 ```bash
 chmod +x scripts/install-local.sh
 ./scripts/install-local.sh
 ```
 
 **Windows:**
+
 ```cmd
 scripts\install-local.bat
 ```
@@ -93,6 +95,7 @@ npm uninstall git-move-offline
 **원인**: npm 전역 bin 경로가 PATH에 없음
 
 **해결:**
+
 ```bash
 # npm 전역 bin 경로 확인
 npm config get prefix
@@ -108,6 +111,7 @@ export PATH="$PATH:$(npm config get prefix)/bin"
 ### 권한 에러 (EACCES)
 
 **Linux/Mac:**
+
 ```bash
 # sudo 사용
 sudo npm install -g ./git-move-offline-1.0.0.tgz
@@ -145,6 +149,7 @@ npm update -g git-move-offline
 ### 스크립트로 일괄 설치
 
 **deploy.sh** (Linux/Mac):
+
 ```bash
 #!/bin/bash
 for host in server1 server2 server3; do
@@ -154,6 +159,7 @@ done
 ```
 
 **deploy.bat** (Windows):
+
 ```cmd
 @echo off
 for %%h in (server1 server2 server3) do (

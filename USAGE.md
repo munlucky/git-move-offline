@@ -24,6 +24,7 @@ gitmv import git-export-20251025.zip
 ```
 
 **초기 모드의 장점:**
+
 - Merge 과정 없이 빠르게 브랜치 생성
 - 복잡한 충돌 처리 불필요
 - 깨끗한 히스토리 유지
@@ -47,6 +48,7 @@ gitmv import git-export-20251025.zip
 ```
 
 **동기화 모드의 특징:**
+
 - 기존 사내 커밋과 외부 커밋을 merge
 - 양쪽 히스토리 모두 보존
 - 충돌 발생 시 안내 및 해결 옵션 제공
@@ -104,23 +106,25 @@ gitmv import git-export-20251025.zip --auto
 
 ## 모드 비교
 
-| 항목 | 초기 모드 (--init) | 동기화 모드 (기본) |
-|------|-------------------|-------------------|
-| **사용 시기** | 빈 저장소 또는 최초 import | 기존 저장소에 정기 동기화 |
-| **자동 감지** | 커밋 0개일 때 자동 제안 | 커밋 있으면 자동 선택 |
-| **브랜치 처리** | Bundle에서 직접 checkout | 기존 브랜치와 merge |
-| **히스토리** | Bundle 히스토리만 | 양쪽 히스토리 보존 |
-| **충돌 가능성** | 없음 | 있음 (merge 시) |
-| **속도** | 빠름 | 상대적으로 느림 |
+| 항목            | 초기 모드 (--init)         | 동기화 모드 (기본)        |
+| --------------- | -------------------------- | ------------------------- |
+| **사용 시기**   | 빈 저장소 또는 최초 import | 기존 저장소에 정기 동기화 |
+| **자동 감지**   | 커밋 0개일 때 자동 제안    | 커밋 있으면 자동 선택     |
+| **브랜치 처리** | Bundle에서 직접 checkout   | 기존 브랜치와 merge       |
+| **히스토리**    | Bundle 히스토리만          | 양쪽 히스토리 보존        |
+| **충돌 가능성** | 없음                       | 있음 (merge 시)           |
+| **속도**        | 빠름                       | 상대적으로 느림           |
 
 ## 주의사항
 
 ### Export 시
+
 - 미커밋된 변경사항은 포함되지 않음
 - 모든 브랜치와 태그가 포함됨
 - Bundle 검증이 자동으로 수행됨
 
 ### Import 시
+
 - **초기 모드**: 빈 Git 저장소에서만 사용 권장
 - **동기화 모드**: 기존 작업 디렉토리가 깨끗해야 함 (커밋되지 않은 변경사항 없음)
 - 기존 히스토리와 병합되므로 양쪽 히스토리 모두 보존됨
@@ -129,6 +133,7 @@ gitmv import git-export-20251025.zip --auto
 ## 트러블슈팅
 
 ### "Not a Git repository" 에러
+
 ```bash
 # Git 저장소가 아닌 디렉토리에서 실행한 경우
 git init
@@ -136,16 +141,19 @@ git remote add origin <url>
 ```
 
 ### Bundle 검증 실패
+
 - ZIP 파일이 손상되었을 가능성
 - 다시 export 후 재시도
 
 ### Remote origin이 없음
+
 ```bash
 # Origin remote 추가
 git remote add origin https://internal-git.company.com/project.git
 ```
 
 ### Push 권한 없음
+
 - 사내 Git 서버 접근 권한 확인
 - 수동으로 push: `git push origin <branch-name>`
 
@@ -154,6 +162,7 @@ git remote add origin https://internal-git.company.com/project.git
 ### 주간 동기화 프로세스
 
 **매주 금요일 (외부 PC):**
+
 ```bash
 cd /project
 git pull origin main
@@ -163,6 +172,7 @@ gitmv export
 ```
 
 **매주 월요일 (사내망 PC):**
+
 ```bash
 cd /internal-project
 # USB에서 zip 파일 복사
@@ -174,6 +184,7 @@ gitmv import git-export-20251025.zip
 ## 파일 구조
 
 Export된 ZIP 파일 내용:
+
 ```
 git-export-20251025-143020.zip
 ├── repository.bundle      # 전체 Git 히스토리
@@ -183,6 +194,7 @@ git-export-20251025-143020.zip
 ## Git Bundle이란?
 
 Git Bundle은 Git의 공식 기능으로, 전체 저장소를 단일 파일로 패키징합니다:
+
 - 모든 커밋, 브랜치, 태그 포함
 - Git의 무결성 검증 기능 활용
 - 네트워크 없이 저장소 복제 가능
