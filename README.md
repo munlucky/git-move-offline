@@ -13,17 +13,20 @@
 
 ## 기본 워크플로우
 
-```mermaid
-graph LR
-    A["PC A (외부망)<br/>Internet-Yes"] -->|"1. gitmv export<br/>(zip 파일 생성)"| B["USB 등<br/>(이동 매체)"]
-    B -->|"2. 파일 복사<br/>(zip 파일 이동)"| C["PC B (내부망)<br/>Internet-No"]
-    C -->|"3. gitmv import<br/>(저장소에 반영)"| D["✓ 완료"]
-
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style C fill:#ffe1f5
-    style D fill:#e1ffe1
 ```
+┌─────────────────────┐       ┌─────────────────────┐       ┌─────────────────────┐
+│  PC A (외부망)      │       │   USB 등           │       │  PC B (내부망)      │
+│  Internet: Yes      │──────>│   (이동 매체)       │──────>│  Internet: No       │
+│                     │       │                     │       │                     │
+│  1. gitmv export    │       │  2. 파일 복사       │       │  3. gitmv import    │
+│  (zip 파일 생성)    │       │  (zip 파일 이동)    │       │  (저장소에 반영)    │
+└─────────────────────┘       └─────────────────────┘       └─────────────────────┘
+```
+
+**단계별 설명:**
+1. **외부망 PC**: `gitmv export` 명령으로 Git 저장소를 zip 파일로 생성
+2. **이동 매체**: USB, 외장 하드 등을 통해 zip 파일을 내부망으로 복사
+3. **내부망 PC**: `gitmv import` 명령으로 zip 파일의 내용을 로컬 저장소에 병합
 
 ## 빠른 시작
 
