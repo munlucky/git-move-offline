@@ -70,10 +70,10 @@ npm install -g git-move-offline
 
 ```bash
 # 버전 확인
-gmo --version
+gitmv --version
 
 # 도움말
-gmo --help
+gitmv --help
 ```
 
 ## 제거
@@ -88,7 +88,7 @@ npm uninstall git-move-offline
 
 ## 문제 해결
 
-### "command not found: gmo"
+### "command not found: gitmv"
 
 **원인**: npm 전역 bin 경로가 PATH에 없음
 

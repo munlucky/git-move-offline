@@ -14,16 +14,16 @@ async function importRepository() {
   // 1. 인자 파싱
   const args = process.argv.slice(2);
   if (args.length === 0) {
-    console.log('Usage: node import.js <zip-file-path> [options]');
+    console.log('Usage: gitmv import <zip-file-path> [options]');
     console.log('\nOptions:');
     console.log('  --init              Initial import mode (for empty repository)');
     console.log('  --auto              Auto mode using config.json');
     console.log('  --dry-run           Simulate without making changes');
     console.log('  --branch <names>    Only merge specified branches (comma-separated)');
     console.log('\nExample:');
-    console.log('  node import.js git-export-20251025.zip');
-    console.log('  node import.js git-export-20251025.zip --init');
-    console.log('  node import.js git-export-20251025.zip --branch main,develop');
+    console.log('  gitmv import git-export-20251025.zip');
+    console.log('  gitmv import git-export-20251025.zip --init');
+    console.log('  gitmv import git-export-20251025.zip --branch main,develop');
     process.exit(1);
   }
 

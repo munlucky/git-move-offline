@@ -9,8 +9,7 @@
 ```bash
 # 외부 PC (인터넷망)
 cd /path/to/project
-npm install
-node export.js
+gitmv export
 # → git-export-20251025-143020.zip 생성
 
 # 사내망 PC (빈 저장소 준비)
@@ -18,7 +17,7 @@ git init
 git remote add origin https://internal-git.company.com/project.git
 
 # Import 실행 - 자동으로 초기 모드 감지됨
-node import.js git-export-20251025.zip
+gitmv import git-export-20251025.zip
 # → "빈 저장소가 감지되었습니다" 메시지 표시
 # → "최초 import 모드를 사용하시겠습니까?" 확인
 # → 브랜치들이 직접 체크아웃됨 (merge 없이)
@@ -36,12 +35,12 @@ node import.js git-export-20251025.zip
 ```bash
 # 외부 PC (최신 커밋 반영 후)
 cd /path/to/project
-node export.js
+gitmv export
 # → git-export-20251025-143020.zip 생성
 
 # 사내망 PC (기존 프로젝트 디렉토리)
 cd /path/to/existing-project
-node import.js git-export-20251025.zip
+gitmv import git-export-20251025.zip
 # → 자동으로 동기화 모드로 실행
 # → 인터랙티브 모드에서 merge할 브랜치 선택
 # → 각 브랜치별로 외부 변경사항 병합
@@ -56,14 +55,14 @@ node import.js git-export-20251025.zip
 
 ```bash
 # main과 develop 브랜치만 가져오기
-node import.js git-export-20251025.zip --branch main,develop
+gitmv import git-export-20251025.zip --branch main,develop
 ```
 
 ### 4. Dry-Run으로 사전 확인
 
 ```bash
 # 실제 변경 없이 시뮬레이션
-node import.js git-export-20251025.zip --dry-run
+gitmv import git-export-20251025.zip --dry-run
 ```
 
 ## Merge 충돌 해결
@@ -82,7 +81,7 @@ git add src/conflicted-file.js
 git commit
 
 # 5. 나머지 브랜치가 있다면 import 재실행
-node import.js git-export-20251025.zip
+gitmv import git-export-20251025.zip
 ```
 
 ## 자동화 설정
@@ -100,7 +99,7 @@ node import.js git-export-20251025.zip
 자동 모드 실행:
 
 ```bash
-node import.js git-export-20251025.zip --auto
+gitmv import git-export-20251025.zip --auto
 ```
 
 ## 모드 비교
@@ -159,7 +158,7 @@ git remote add origin https://internal-git.company.com/project.git
 cd /project
 git pull origin main
 git pull origin develop
-node export.js
+gitmv export
 # → USB에 zip 파일 복사
 ```
 
@@ -167,7 +166,7 @@ node export.js
 ```bash
 cd /internal-project
 # USB에서 zip 파일 복사
-node import.js git-export-20251025.zip
+gitmv import git-export-20251025.zip
 # → main, develop 선택
 # → 확인 후 push
 ```

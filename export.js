@@ -125,7 +125,7 @@ async function exportRepository() {
       '',
       'Next steps:',
       '1. Copy this ZIP file to your offline environment',
-      '2. Run: node import.js <zip-file-path>'
+      '2. Run: gitmv import <zip-file-path>'
     ], 70);
 
   } catch (error) {
