@@ -58,13 +58,13 @@ npm install
 
 ## 사용 방법
 
-> **참고**: 전역 설치 후 `gmo` 명령어를 사용하거나, 개발 모드에서는 `node export.js` / `node import.js`를 직접 실행할 수 있습니다.
+> **참고**: 전역 설치 후 `gitmv` 명령어를 사용하거나, 개발 모드에서는 `node export.js` / `node import.js`를 직접 실행할 수 있습니다.
 
 ### 1. Export (외부 PC에서)
 
 ```bash
 # 전역 설치 후
-gmo export
+gitmv export
 
 # 또는 개발 모드
 npm run export
@@ -92,7 +92,7 @@ git init
 git remote add origin https://internal-git.company.com/project.git
 
 # Import 실행 (자동으로 초기 모드 감지)
-gmo import git-export-20251025.zip
+gitmv import git-export-20251025.zip
 
 # 또는 개발 모드
 node import.js git-export-20251025.zip
@@ -107,7 +107,7 @@ node import.js git-export-20251025.zip
 cd /path/to/existing-project
 
 # 전역 설치 후
-gmo import git-export-20251025.zip
+gitmv import git-export-20251025.zip
 
 # 또는 개발 모드
 node import.js git-export-20251025.zip
@@ -127,20 +127,20 @@ node import.js git-export-20251025.zip
 
 ```bash
 # 초기 모드 강제 사용 (자동 감지 무시)
-gmo import git-export-20251025.zip --init
+gitmv import git-export-20251025.zip --init
 
 # 자동 모드 (설정 파일 기반)
-gmo import git-export-20251025.zip --auto
+gitmv import git-export-20251025.zip --auto
 
 # Dry-run (실제 변경 없이 시뮬레이션)
-gmo import git-export-20251025.zip --dry-run
+gitmv import git-export-20251025.zip --dry-run
 
 # 특정 브랜치만 처리
-gmo import git-export-20251025.zip --branch main,develop
+gitmv import git-export-20251025.zip --branch main,develop
 
 # 도움말
-gmo --help
-gmo import --help
+gitmv --help
+gitmv import --help
 ```
 
 ## 설정 파일 (선택사항)
@@ -199,14 +199,14 @@ gmo import --help
 ```bash
 # 외부 PC (인터넷망)
 cd /path/to/project
-gmo export
+gitmv export
 # → git-export-20251025-143020.zip 생성
 
 # USB로 파일 이동
 
 # 사내망 PC
 cd /path/to/internal-project
-gmo import /path/to/git-export-20251025-143020.zip
+gitmv import /path/to/git-export-20251025-143020.zip
 # → 인터랙티브 프롬프트에서 브랜치 선택
 # → merge 완료 후 push
 ```

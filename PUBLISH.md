@@ -111,8 +111,8 @@ npm pack
 npm install -g ./git-move-offline-1.0.0.tgz
 
 # 명령어 테스트
-gmo --version
-gmo --help
+gitmv --version
+gitmv --help
 
 # 제거
 npm uninstall -g git-move-offline
@@ -151,7 +151,7 @@ npm publish
 npm install -g git-move-offline
 
 # 동작 확인
-gmo --version
+gitmv --version
 ```
 
 ## 업데이트 배포
