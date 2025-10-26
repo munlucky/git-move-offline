@@ -177,6 +177,65 @@ async function importRepository() {
 
     console.log(getMessage('branchesToMerge', branchesToMerge.join(', ')));
 
+    // 9.5. Ask if user wants to map branches to different targets (Sync Mode only)
+    let branchMapping = null;
+    if (!useInitMode && !autoMode && branchesToMerge.length > 0) {
+      const useMapping = await Interactive.confirm(
+        getMessage('useBranchMapping'),
+        false
+      );
+
+      if (useMapping) {
+        Interactive.info(getMessage('branchMappingMode'));
+        branchMapping = {};
+
+        for (const branch of branchesToMerge) {
+          const localBranches = git.getLocalBranches();
+          const choices = [
+            getMessage('sameNameBranch', branch),
+            ...localBranches.filter((b) => b !== branch),
+            getMessage('enterNewBranchName'),
+            getMessage('skip'),
+          ];
+
+          const selected = await Interactive.select(
+            getMessage('selectTargetBranch', branch),
+            choices
+          );
+
+          if (selected === getMessage('skip')) {
+            continue; // Skip this branch
+          } else if (selected === getMessage('enterNewBranchName')) {
+            const newName = await Interactive.question(
+              getMessage('newBranchNamePrompt')
+            );
+            if (newName.trim()) {
+              branchMapping[branch] = newName.trim();
+            }
+          } else if (selected === getMessage('sameNameBranch', branch)) {
+            branchMapping[branch] = branch;
+          } else {
+            branchMapping[branch] = selected;
+          }
+        }
+
+        // Show mapping summary
+        console.log(getMessage('branchMappingSummary'));
+        Object.entries(branchMapping).forEach(([source, target]) => {
+          console.log(getMessage('mapping', source, target));
+        });
+
+        // Update branchesToMerge to only include mapped branches
+        branchesToMerge = Object.keys(branchMapping);
+
+        if (branchesToMerge.length === 0) {
+          Interactive.warning(getMessage('noBranchesSelected'));
+          cleanup();
+          process.exit(0);
+        }
+      }
+    }
+
     // 10. Process branches (behavior differs by mode)
     const mergeResults = [];
 
@@ -222,53 +281,66 @@ async function importRepository() {
           console.log(getMessage('author', branchInfo.author));
         }
 
-        // Check if local branch with same name exists
-        const hasLocalBranch = localBranches.includes(branch);
+        // Determine target branch (use mapping if available)
+        const targetBranch = branchMapping ? branchMapping[branch] : branch;
+
+        // Check if target branch exists locally
+        const hasLocalBranch = localBranches.includes(targetBranch);
 
         if (!hasLocalBranch) {
           // Create new branch if doesn't exist locally
+          if (branchMapping) {
+            // In mapping mode, create target branch automatically
+            Interactive.info(getMessage('targetBranchNotExist', targetBranch));
+          }
+
           const action = await Interactive.select(
-            getMessage('branchExists', branch),
+            getMessage('branchExists', targetBranch),
             [getMessage('createAndCheckout'), getMessage('skip')]
           );
 
           if (action === getMessage('skip')) {
-            console.log(getMessage('skipped', branch));
+            console.log(getMessage('skipped', targetBranch));
             continue;
           }
 
           if (!dryRun) {
-            git.execGit(`checkout -b ${branch} ${remoteBranch}`);
-            console.log(getMessage('createdAndCheckedOut', branch));
+            git.execGit(`checkout -b ${targetBranch} ${remoteBranch}`);
+            console.log(getMessage('createdAndCheckedOut', targetBranch));
           } else {
-            console.log(getMessage('wouldCreateAndCheckout', branch));
+            console.log(getMessage('wouldCreateAndCheckout', targetBranch));
           }
 
-          mergeResults.push({ branch, status: 'created', conflicts: [] });
+          mergeResults.push({ branch: targetBranch, status: 'created', conflicts: [] });
           continue;
         }
 
         // Confirm before merge
         if (!autoMode && !dryRun) {
           const shouldMerge = await Interactive.confirm(
-            getMessage('confirmMerge', remoteBranch, branch),
+            getMessage('confirmMerge', remoteBranch, targetBranch),
             true
           );
           if (!shouldMerge) {
-            console.log(getMessage('skipped', branch));
+            console.log(getMessage('skipped', targetBranch));
             continue;
           }
+        }
+
+        // Show mapping info if applicable
+        if (branchMapping && branch !== targetBranch) {
+          console.log(getMessage('mergingInto', branch, targetBranch));
         }
 
         // Checkout to target branch (if not current)
         const currentActiveBranch = git.hasAnyCommits()
           ? git.getCurrentBranch()
           : null;
-        if (currentActiveBranch && currentActiveBranch !== branch) {
+        if (currentActiveBranch && currentActiveBranch !== targetBranch) {
           if (!dryRun) {
-            git.execGit(`checkout ${branch}`);
+            git.execGit(`checkout ${targetBranch}`);
           } else {
-            console.log(getMessage('wouldCheckout', branch));
+            console.log(getMessage('wouldCheckout', targetBranch));
           }
         }
 
@@ -281,14 +353,14 @@ async function importRepository() {
 
           if (result.success) {
             console.log(getMessage('mergedSuccessfully'));
-            mergeResults.push({ branch, status: 'merged', conflicts: [] });
+            mergeResults.push({ branch: targetBranch, status: 'merged', conflicts: [] });
           } else {
-            Interactive.warning(getMessage('mergeConflict', branch));
+            Interactive.warning(getMessage('mergeConflict', targetBranch));
             console.log(getMessage('conflictedFiles'));
             result.conflicts.forEach((file) => console.log(`    - ${file}`));
 
             mergeResults.push({
-              branch,
+              branch: targetBranch,
               status: 'conflict',
               conflicts: result.conflicts,
             });
@@ -304,8 +376,8 @@ async function importRepository() {
             process.exit(1);
           }
         } else {
-          console.log(getMessage('wouldMerge', remoteBranch, branch));
-          mergeResults.push({ branch, status: 'simulated', conflicts: [] });
+          console.log(getMessage('wouldMerge', remoteBranch, targetBranch));
+          mergeResults.push({ branch: targetBranch, status: 'simulated', conflicts: [] });
         }
       }
     }
