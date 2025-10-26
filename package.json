@@ -1,6 +1,6 @@
 {
   "name": "git-move-offline",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Git 저장소를 히스토리와 함께 오프라인 환경으로 이동 및 동기화하는 도구",
   "bin": {
     "gitmv": "bin/gitmv.js"
