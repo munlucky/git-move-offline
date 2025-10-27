@@ -21,6 +21,7 @@ async function importRepository() {
     console.log(`  --auto              ${getMessage('autoOption')}`);
     console.log(`  --dry-run           ${getMessage('dryRunOption')}`);
     console.log(`  --branch <names>    ${getMessage('branchOption')}`);
+    console.log(`  --allow-unrelated-histories  ${getMessage('allowUnrelatedOption')}`);
     console.log(`\n${getMessage('examplesTitle')}`);
     console.log(`  ${getMessage('importExample1')}`);
     console.log(`  ${getMessage('importExample2')}`);
@@ -32,6 +33,7 @@ async function importRepository() {
   const initMode = args.includes('--init');
   const autoMode = args.includes('--auto');
   const dryRun = args.includes('--dry-run');
+  const allowUnrelatedHistories = args.includes('--allow-unrelated-histories');
   const branchIndex = args.indexOf('--branch');
   const specificBranches =
     branchIndex !== -1 && args[branchIndex + 1]
@@ -90,6 +92,17 @@ async function importRepository() {
     Interactive.info(getMessage('syncModeInfo'));
   }
 
+  // 5. Create temporary directory and prepare cleanup
+  const tempDir = path.join(repoPath, '.git-import-temp');
+
+  // Clean up any leftover resources from previous failed imports BEFORE checking uncommitted changes
+  if (fs.existsSync(tempDir)) {
+    Interactive.showProgress(getMessage('cleaningPreviousImport'));
+    ZipUtils.deletePath(tempDir);
+    Interactive.completeProgress(true);
+  }
+  git.removeRemote(REMOTE_NAME);
+
   // Check working directory status (only when not in init mode)
   if (!useInitMode && git.hasUncommittedChanges()) {
     Interactive.error(getMessage('uncommittedChangesImport'));
@@ -100,9 +113,6 @@ async function importRepository() {
   if (currentBranch) {
     console.log(getMessage('currentBranchImport', currentBranch));
   }
-
-  // 5. Create temporary directory and extract ZIP
-  const tempDir = path.join(repoPath, '.git-import-temp');
   ZipUtils.ensureDir(tempDir);
 
   let cleanup = () => {
@@ -346,10 +356,29 @@ async function importRepository() {
 
         // Execute merge
         if (!dryRun) {
-          const result = git.mergeBranch(remoteBranch, {
+          let result = git.mergeBranch(remoteBranch, {
             message: `Merge external changes from ${branch}`,
             noFastForward: true,
+            allowUnrelatedHistories: allowUnrelatedHistories,
           });
+
+          // Check if merge failed due to unrelated histories (support English and Korean)
+          if (!result.success && result.error &&
+              (result.error.includes('unrelated histories') || result.error.includes('관계 없는 커밋 내역'))) {
+            const allowMerge = await Interactive.confirm(
+              getMessage('allowUnrelatedHistories'),
+              true
+            );
+
+            if (allowMerge) {
+              Interactive.info(getMessage('unrelatedHistoriesNote'));
+              result = git.mergeBranch(remoteBranch, {
+                message: `Merge external changes from ${branch}`,
+                noFastForward: true,
+                allowUnrelatedHistories: true,
+              });
+            }
+          }
 
           if (result.success) {
             console.log(getMessage('mergedSuccessfully'));
@@ -370,9 +399,9 @@ async function importRepository() {
             console.log(getMessage('resolveStep2'));
             console.log(getMessage('resolveStep3'));
             console.log(getMessage('resolveStep4'));
+            Interactive.info(getMessage('conflictKeepResources'));
 
-            // Stop on conflict
-            cleanup();
+            // Stop on conflict (do NOT cleanup - keep resources for conflict resolution)
             process.exit(1);
           }
         } else {
