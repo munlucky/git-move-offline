@@ -16,6 +16,11 @@ async function exportRepository() {
     branchIndex !== -1 && args[branchIndex + 1] ? args[branchIndex + 1] : null;
   const allBranches = args.includes('--all');
   const autoMode = args.includes('--auto');
+  const depthIndex = args.indexOf('--depth');
+  const depth =
+    depthIndex !== -1 && args[depthIndex + 1]
+      ? parseInt(args[depthIndex + 1])
+      : null;
 
   const repoPath = process.cwd();
   const git = new GitUtils(repoPath);
@@ -111,6 +116,8 @@ async function exportRepository() {
     branchMetadata,
     tagMetadata,
     repositoryPath: repoPath,
+    isShallow: depth !== null,
+    depth: depth || null,
   };
   Interactive.completeProgress(true);
 
@@ -148,15 +155,34 @@ async function exportRepository() {
   ZipUtils.ensureDir(tempDir);
 
   try {
-    // 7. Create bundle
+    let bundlePath = path.join(tempDir, 'repository.bundle');
+    let exportGit = git;
+    let tempClonePath = null;
+
+    // 7. Create shallow clone if depth specified
+    if (depth) {
+      tempClonePath = path.join(tempDir, 'repo-shallow');
+
+      // Create shallow clone
+      Interactive.showProgress(getMessage('creatingShallowClone', depth));
+      git.createShallowClone(tempClonePath, depth, branchesToExport);
+      Interactive.completeProgress(true);
+
+      // Show warning
+      console.log(getMessage('shallowExportWarning'));
+
+      // Use shallow clone for bundle creation
+      exportGit = new GitUtils(tempClonePath);
+    }
+
+    // 8. Create bundle
     Interactive.showProgress(getMessage('creatingBundle'));
-    const bundlePath = path.join(tempDir, 'repository.bundle');
-    git.createBundle(bundlePath, bundleArgs);
+    exportGit.createBundle(bundlePath, bundleArgs);
     Interactive.completeProgress(true);
 
     // Verify bundle
     Interactive.showProgress(getMessage('verifyingBundle'));
-    const isValid = git.verifyBundle(bundlePath);
+    const isValid = exportGit.verifyBundle(bundlePath);
     if (!isValid) {
       throw new Error(getMessage('bundleFailed'));
     }
@@ -165,11 +191,11 @@ async function exportRepository() {
     const bundleSize = ZipUtils.getFileSize(bundlePath);
     console.log(getMessage('bundleSize', ZipUtils.formatBytes(bundleSize)));
 
-    // 8. Create metadata file
+    // 9. Create metadata file
     const metadataPath = path.join(tempDir, 'metadata.json');
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
 
-    // 9. Create ZIP archive
+    // 10. Create ZIP archive
     const timestamp = ZipUtils.getTimestamp();
     const zipFileName = `git-export-${timestamp}.zip`;
     const zipPath = path.join(repoPath, zipFileName);
@@ -187,12 +213,12 @@ async function exportRepository() {
     const zipSize = ZipUtils.getFileSize(zipPath);
     console.log(getMessage('zipSize', ZipUtils.formatBytes(zipSize)));
 
-    // 10. Cleanup
+    // 11. Cleanup
     Interactive.showProgress(getMessage('cleaningUp'));
     ZipUtils.deletePath(tempDir);
     Interactive.completeProgress(true);
 
-    // 11. Complete
+    // 12. Complete
     Interactive.printBox(
       getMessage('exportComplete'),
       [

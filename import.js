@@ -21,7 +21,9 @@ async function importRepository() {
     console.log(`  --auto              ${getMessage('autoOption')}`);
     console.log(`  --dry-run           ${getMessage('dryRunOption')}`);
     console.log(`  --branch <names>    ${getMessage('branchOption')}`);
-    console.log(`  --allow-unrelated-histories  ${getMessage('allowUnrelatedOption')}`);
+    console.log(
+      `  --allow-unrelated-histories  ${getMessage('allowUnrelatedOption')}`
+    );
     console.log(`\n${getMessage('examplesTitle')}`);
     console.log(`  ${getMessage('importExample1')}`);
     console.log(`  ${getMessage('importExample2')}`);
@@ -321,7 +323,11 @@ async function importRepository() {
             console.log(getMessage('wouldCreateAndCheckout', targetBranch));
           }
 
-          mergeResults.push({ branch: targetBranch, status: 'created', conflicts: [] });
+          mergeResults.push({
+            branch: targetBranch,
+            status: 'created',
+            conflicts: [],
+          });
           continue;
         }
 
@@ -363,8 +369,12 @@ async function importRepository() {
           });
 
           // Check if merge failed due to unrelated histories (support English and Korean)
-          if (!result.success && result.error &&
-              (result.error.includes('unrelated histories') || result.error.includes('관계 없는 커밋 내역'))) {
+          if (
+            !result.success &&
+            result.error &&
+            (result.error.includes('unrelated histories') ||
+              result.error.includes('관계 없는 커밋 내역'))
+          ) {
             const allowMerge = await Interactive.confirm(
               getMessage('allowUnrelatedHistories'),
               true
@@ -382,7 +392,11 @@ async function importRepository() {
 
           if (result.success) {
             console.log(getMessage('mergedSuccessfully'));
-            mergeResults.push({ branch: targetBranch, status: 'merged', conflicts: [] });
+            mergeResults.push({
+              branch: targetBranch,
+              status: 'merged',
+              conflicts: [],
+            });
           } else {
             Interactive.warning(getMessage('mergeConflict', targetBranch));
             console.log(getMessage('conflictedFiles'));
@@ -406,7 +420,11 @@ async function importRepository() {
           }
         } else {
           console.log(getMessage('wouldMerge', remoteBranch, targetBranch));
-          mergeResults.push({ branch: targetBranch, status: 'simulated', conflicts: [] });
+          mergeResults.push({
+            branch: targetBranch,
+            status: 'simulated',
+            conflicts: [],
+          });
         }
       }
     }

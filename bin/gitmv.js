@@ -31,6 +31,7 @@ ${getMessage('usageTitle')}
 ${getMessage('exportOptionsTitle')}
   --branch <name>          ${getMessage('exportBranchOption')}
   --all                    ${getMessage('exportAllOption')}
+  --depth <N>              ${getMessage('depthOption')}
   --auto                   ${getMessage('autoOptionDesc')}
 
 ${getMessage('importOptionsTitle')}
@@ -47,6 +48,7 @@ ${getMessage('optionsTitle')}
 ${getMessage('examplesTitle')}
   gitmv export
   gitmv export --branch main
+  gitmv export --depth 100
   gitmv import git-export-20251025.zip
   gitmv import git-export-20251025.zip --init
   gitmv import git-export-20251025.zip --branch main,develop

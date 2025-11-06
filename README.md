@@ -24,6 +24,7 @@
 ```
 
 **단계별 설명:**
+
 1. **외부망 PC**: `gitmv export` 명령으로 Git 저장소를 zip 파일로 생성
 2. **이동 매체**: USB, 외장 하드 등을 통해 zip 파일을 내부망으로 복사
 3. **내부망 PC**: `gitmv import` 명령으로 zip 파일의 내용을 로컬 저장소에 병합
@@ -43,6 +44,7 @@ npm install -g git-move-offline
 ### 2. 사용법
 
 **외부망 PC에서 (Export):**
+
 ```bash
 # 프로젝트 폴더로 이동
 cd /path/to/my-project
@@ -53,6 +55,7 @@ gitmv export
 ```
 
 **내부망 PC에서 (Import):**
+
 ```bash
 # 내부망 프로젝트 폴더로 이동
 cd /path/to/internal-project
@@ -64,33 +67,39 @@ gitmv import /path/to/git-export-YYYYMMDD-HHMMSS.zip
 ## 주요 명령어
 
 ### Export
+
 ```bash
 gitmv export [옵션]
 ```
 
 **옵션:**
+
 - `--branch <name>`: 특정 브랜치만 export
 - `--all`: 모든 브랜치와 태그 포함 (기본값)
 - `--auto`: 설정 파일에 따라 자동 실행
 
 **예시:**
+
 ```bash
 gitmv export                    # 모든 브랜치 export
 gitmv export --branch main      # main 브랜치만 export
 ```
 
 ### Import
+
 ```bash
 gitmv import <file.zip> [옵션]
 ```
 
 **옵션:**
+
 - `--init`: 초기 모드로 강제 실행 (빈 저장소에 복제)
 - `--branch <names>`: 특정 브랜치만 import (쉼표로 구분)
 - `--auto`: 설정 파일에 따라 자동으로 merge/push
 - `--dry-run`: 실제 변경 없이 시뮬레이션만 실행
 
 **예시:**
+
 ```bash
 gitmv import git-export-20251025.zip
 gitmv import git-export-20251025.zip --init
@@ -99,6 +108,7 @@ gitmv import git-export-20251025.zip --dry-run
 ```
 
 ### 기타 옵션
+
 ```bash
 gitmv --help                    # 도움말 표시
 gitmv --version                 # 버전 정보 표시
